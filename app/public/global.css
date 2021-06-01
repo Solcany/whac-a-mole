@@ -5,6 +5,7 @@ html, body {
 }
 
 body {
+	padding: 0;
 	color: #333;
 	margin: 0;
 	padding: 8px;
