@@ -1,33 +1,43 @@
 <script>
 	import {onMount, onDestroy} from 'svelte';
-	import {gameState} from './gameState.js';
+	import {moleWidth, moleActivationChance} from './settings.js';
+	import {gameTicker, gameScore} from './store.js';
 
-	import {moleWidth, moleActivationChance} from './gameSettings.js';
+	export let x, y, value
 
-	export let x, y
 	let isActive = false
+	$: $gameTicker, handleTicks();
 
-	let state;
-	const unsubscribe = gameState.subscribe(value => {
-    	state = value;
-  	});
-  	onDestroy(unsubscribe);
+	onMount(()=> {
+		console.log(value)
+	})
 
-	$: if (state) {
-    	handleStateChange()
-	}
 
-	function handleStateChange() {
+
+	function handleTicks() {
+		// reset mole on tick
+		isActive = false
+
+		// activate mole on chance
 		if(coinToss(moleActivationChance)) {
 			isActive = true
 		}
 	}
 	function handleClick() {
-		isActive = !isActive
+		if(isActive) {
+			isActive = false
+			updateScore()
+		}
+	}
+
+
+	function updateScore() {
+		let v = parseInt(value)
+		gameScore.update(score => score + v)
 	}
 
 	function coinToss(chance) {
-		(Math.random() < chance) ? true : false;
+		return (Math.random() < chance ? true : false);
 	}
 
 </script>

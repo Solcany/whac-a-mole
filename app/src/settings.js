@@ -1,7 +1,7 @@
 // game 
 // export const tickSpeed = 100;
-export const gameCycleTime = 2000;
-export const gameEndTime = 60000;
+export const gameTickTime = 3000;
+export const gameEndTime = 5000;
 
 // mole
 export const moleWidth = 25;

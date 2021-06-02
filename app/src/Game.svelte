@@ -1,39 +1,62 @@
 <script>
-import { get } from 'svelte/store';
-import { onMount } from 'svelte';
+import { onMount, onDestroy } from 'svelte';
 import Mole from './Mole.svelte';
 
-import { tickSpeed, gameCycleTime, gameEndTime } from './gameSettings.js'
-import { gameState } from './gameState.js'
+import { gameTickTime, gameEndTime } from './settings.js'
+import { gameState } from './store.js'
+import { gameTicker } from './store.js'
 
-$: width = window.innerWidth;
-$: height = window.innerHeight;
-
-
-function gameLoop() {
-	gameState.update(state => !state);
-	setTimeout(gameLoop, tickSpeed)
-}
+let gameLoopInterval
 
 onMount(() => {
-	gameLoop()
+	startGameLoop()
 })
 
+onDestroy(() => {
+	resetTicker();
+	clearInterval(gameLoopInterval);
+})
+
+function startGameLoop() {
+	gameLoopInterval = setInterval(() =>  {
+					handleTicks()
+					updateTicker()
+				}, gameTickTime)
+}
+
+function updateTicker() {
+	gameTicker.update(t => t + gameTickTime)
+}
+
+function resetTicker() {
+	gameTicker.set(0)
+}
+
+function handleTicks() {
+	console.log($gameTicker);
+	if($gameTicker >= gameEndTime) {
+		gameState.set("gameEnd")
+	}
+}
+
+// onMount(() => {
+
+// }
+//console.log(gameTicker);
+
+// function gameLoop() {
+// 	console.log()
+// 	setTimeout(gameLoop, gameTick)
+// }
+
+//onMount(() => {
+	//gameLoop()
+//})
 
 </script>
 
-<style>
-	section {
-		background-color: red;
-		position: relative;
-		overflow: hidden;
-	}
-</style>
 
-<section style="width: {width}px; height: {height}px;">
-	<slot></slot>
-</section>
+<slot></slot>
 
-<svelte:window bind:innerWidth={width} bind:innerHeight={height}/>
 
 
