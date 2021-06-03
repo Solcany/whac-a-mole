@@ -48,42 +48,6 @@ var app = (function () {
     function component_subscribe(component, store, callback) {
         component.$$.on_destroy.push(subscribe(store, callback));
     }
-    function create_slot(definition, ctx, $$scope, fn) {
-        if (definition) {
-            const slot_ctx = get_slot_context(definition, ctx, $$scope, fn);
-            return definition[0](slot_ctx);
-        }
-    }
-    function get_slot_context(definition, ctx, $$scope, fn) {
-        return definition[1] && fn
-            ? assign($$scope.ctx.slice(), definition[1](fn(ctx)))
-            : $$scope.ctx;
-    }
-    function get_slot_changes(definition, $$scope, dirty, fn) {
-        if (definition[2] && fn) {
-            const lets = definition[2](fn(dirty));
-            if ($$scope.dirty === undefined) {
-                return lets;
-            }
-            if (typeof lets === 'object') {
-                const merged = [];
-                const len = Math.max($$scope.dirty.length, lets.length);
-                for (let i = 0; i < len; i += 1) {
-                    merged[i] = $$scope.dirty[i] | lets[i];
-                }
-                return merged;
-            }
-            return $$scope.dirty | lets;
-        }
-        return $$scope.dirty;
-    }
-    function update_slot(slot, slot_definition, ctx, $$scope, dirty, get_slot_changes_fn, get_slot_context_fn) {
-        const slot_changes = get_slot_changes(slot_definition, $$scope, dirty, get_slot_changes_fn);
-        if (slot_changes) {
-            const slot_context = get_slot_context(slot_definition, ctx, $$scope, get_slot_context_fn);
-            slot.p(slot_context, slot_changes);
-        }
-    }
 
     function append(target, node) {
         target.appendChild(node);
@@ -93,6 +57,12 @@ var app = (function () {
     }
     function detach(node) {
         node.parentNode.removeChild(node);
+    }
+    function destroy_each(iterations, detaching) {
+        for (let i = 0; i < iterations.length; i += 1) {
+            if (iterations[i])
+                iterations[i].d(detaching);
+        }
     }
     function element(name) {
         return document.createElement(name);
@@ -253,6 +223,43 @@ var app = (function () {
         : typeof globalThis !== 'undefined'
             ? globalThis
             : global);
+
+    function get_spread_update(levels, updates) {
+        const update = {};
+        const to_null_out = {};
+        const accounted_for = { $$scope: 1 };
+        let i = levels.length;
+        while (i--) {
+            const o = levels[i];
+            const n = updates[i];
+            if (n) {
+                for (const key in o) {
+                    if (!(key in n))
+                        to_null_out[key] = 1;
+                }
+                for (const key in n) {
+                    if (!accounted_for[key]) {
+                        update[key] = n[key];
+                        accounted_for[key] = 1;
+                    }
+                }
+                levels[i] = n;
+            }
+            else {
+                for (const key in o) {
+                    accounted_for[key] = 1;
+                }
+            }
+        }
+        for (const key in to_null_out) {
+            if (!(key in update))
+                update[key] = undefined;
+        }
+        return update;
+    }
+    function get_spread_object(spread_props) {
+        return typeof spread_props === 'object' && spread_props !== null ? spread_props : {};
+    }
     function create_component(block) {
         block && block.c();
     }
@@ -421,6 +428,15 @@ var app = (function () {
             return;
         dispatch_dev('SvelteDOMSetData', { node: text, data });
         text.data = data;
+    }
+    function validate_each_argument(arg) {
+        if (typeof arg !== 'string' && !(arg && typeof arg === 'object' && 'length' in arg)) {
+            let msg = '{#each} only iterates over array-like objects.';
+            if (typeof Symbol === 'function' && arg && Symbol.iterator in arg) {
+                msg += ' You can use a spread to convert this iterable into an array.';
+            }
+            throw new Error(msg);
+        }
     }
     function validate_slots(name, slot, keys) {
         for (const slot_key of Object.keys(slot)) {
@@ -636,12 +652,23 @@ var app = (function () {
     }
 
     // game 
-    // export const tickSpeed = 100;
-    const gameTickTime = 2000;
+    const gameTickTime = 10000;
     const gameEndTime = 10000;
+
+    // level
+    const fittingMinDiameter = 75;
+    const fittingPadding = 50;
+    const fittingAttempts = 1000;
+    const fittingDiameterRange = {low: 150, high: 250};
+    const levelBounds = {x1: 0.2, y1: 0.2, x2: 0.8, y2: 0.8};
+
+    // mole
+    const moleAmount = 50;
     const moleActivationChance = 0.5;
     const moleActiveImgPath = "../assets/image/mole_active.png";
     const moleInactiveImgPath = "../assets/image/mole_inactive.png";
+    const moleColorRange = ["red", "blue", "pink"];
+    const moleValueRange = {low: 10, high: 30};
 
     const width = writable(window.innerWidth);
     const height = writable(window.innerHeight);
@@ -831,14 +858,16 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			span = element("span");
-    			set_style(span, "--size", /*width*/ ctx[2] + "px");
+    			set_style(span, "--size", /*diameter*/ ctx[2] + "px");
     			set_style(span, "--x", /*x*/ ctx[0] + "px");
     			set_style(span, "--y", /*y*/ ctx[1] + "px");
+    			set_style(span, "--color", /*color*/ ctx[3]);
     			set_style(span, "--activePath", "url(" + moleActiveImgPath + ")");
     			set_style(span, "--inactivePath", "url(" + moleInactiveImgPath + ")");
-    			attr_dev(span, "class", "svelte-6706b5");
-    			toggle_class(span, "active", /*isActive*/ ctx[3]);
-    			add_location(span, file$3, 69, 0, 1130);
+    			attr_dev(span, "class", "svelte-15x9cbs");
+    			toggle_class(span, "inactive", !/*isActive*/ ctx[4]);
+    			toggle_class(span, "active", /*isActive*/ ctx[4]);
+    			add_location(span, file$3, 75, 0, 1332);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -847,13 +876,13 @@ var app = (function () {
     			insert_dev(target, span, anchor);
 
     			if (!mounted) {
-    				dispose = listen_dev(span, "click", /*handleClick*/ ctx[4], false, false, false);
+    				dispose = listen_dev(span, "click", /*handleClick*/ ctx[5], false, false, false);
     				mounted = true;
     			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*width*/ 4) {
-    				set_style(span, "--size", /*width*/ ctx[2] + "px");
+    			if (dirty & /*diameter*/ 4) {
+    				set_style(span, "--size", /*diameter*/ ctx[2] + "px");
     			}
 
     			if (dirty & /*x*/ 1) {
@@ -864,8 +893,16 @@ var app = (function () {
     				set_style(span, "--y", /*y*/ ctx[1] + "px");
     			}
 
-    			if (dirty & /*isActive*/ 8) {
-    				toggle_class(span, "active", /*isActive*/ ctx[3]);
+    			if (dirty & /*color*/ 8) {
+    				set_style(span, "--color", /*color*/ ctx[3]);
+    			}
+
+    			if (dirty & /*isActive*/ 16) {
+    				toggle_class(span, "inactive", !/*isActive*/ ctx[4]);
+    			}
+
+    			if (dirty & /*isActive*/ 16) {
+    				toggle_class(span, "active", /*isActive*/ ctx[4]);
     			}
     		},
     		i: noop,
@@ -895,26 +932,32 @@ var app = (function () {
     function instance$4($$self, $$props, $$invalidate) {
     	let $gameTicker;
     	validate_store(gameTicker, "gameTicker");
-    	component_subscribe($$self, gameTicker, $$value => $$invalidate(6, $gameTicker = $$value));
+    	component_subscribe($$self, gameTicker, $$value => $$invalidate(7, $gameTicker = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots("Mole", slots, []);
-    	let { x } = $$props, { y } = $$props, { width } = $$props, { value } = $$props;
+
+    	let { x } = $$props,
+    		{ y } = $$props,
+    		{ diameter } = $$props,
+    		{ value } = $$props,
+    		{ color } = $$props;
+
     	let isActive = false;
 
     	function handleTicks() {
     		// reset mole on tick
-    		$$invalidate(3, isActive = false);
+    		$$invalidate(4, isActive = false);
 
     		// activate mole on chance
     		if (coinToss(moleActivationChance)) {
-    			$$invalidate(3, isActive = true);
+    			$$invalidate(4, isActive = true);
     		}
     	}
 
     	function handleClick() {
     		if (isActive) {
     			console.log("active");
-    			$$invalidate(3, isActive = false);
+    			$$invalidate(4, isActive = false);
     			updateScore();
     		}
     	}
@@ -924,7 +967,7 @@ var app = (function () {
     		gameScore.update(score => score + v);
     	}
 
-    	const writable_props = ["x", "y", "width", "value"];
+    	const writable_props = ["x", "y", "diameter", "value", "color"];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console_1$1.warn(`<Mole> was created with unknown prop '${key}'`);
@@ -933,8 +976,9 @@ var app = (function () {
     	$$self.$$set = $$props => {
     		if ("x" in $$props) $$invalidate(0, x = $$props.x);
     		if ("y" in $$props) $$invalidate(1, y = $$props.y);
-    		if ("width" in $$props) $$invalidate(2, width = $$props.width);
-    		if ("value" in $$props) $$invalidate(5, value = $$props.value);
+    		if ("diameter" in $$props) $$invalidate(2, diameter = $$props.diameter);
+    		if ("value" in $$props) $$invalidate(6, value = $$props.value);
+    		if ("color" in $$props) $$invalidate(3, color = $$props.color);
     	};
 
     	$$self.$capture_state = () => ({
@@ -947,8 +991,9 @@ var app = (function () {
     		gameScore,
     		x,
     		y,
-    		width,
+    		diameter,
     		value,
+    		color,
     		isActive,
     		handleTicks,
     		handleClick,
@@ -960,9 +1005,10 @@ var app = (function () {
     	$$self.$inject_state = $$props => {
     		if ("x" in $$props) $$invalidate(0, x = $$props.x);
     		if ("y" in $$props) $$invalidate(1, y = $$props.y);
-    		if ("width" in $$props) $$invalidate(2, width = $$props.width);
-    		if ("value" in $$props) $$invalidate(5, value = $$props.value);
-    		if ("isActive" in $$props) $$invalidate(3, isActive = $$props.isActive);
+    		if ("diameter" in $$props) $$invalidate(2, diameter = $$props.diameter);
+    		if ("value" in $$props) $$invalidate(6, value = $$props.value);
+    		if ("color" in $$props) $$invalidate(3, color = $$props.color);
+    		if ("isActive" in $$props) $$invalidate(4, isActive = $$props.isActive);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -970,18 +1016,25 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*$gameTicker*/ 64) {
+    		if ($$self.$$.dirty & /*$gameTicker*/ 128) {
     			(handleTicks());
     		}
     	};
 
-    	return [x, y, width, isActive, handleClick, value, $gameTicker];
+    	return [x, y, diameter, color, isActive, handleClick, value, $gameTicker];
     }
 
     class Mole extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$4, create_fragment$4, safe_not_equal, { x: 0, y: 1, width: 2, value: 5 });
+
+    		init(this, options, instance$4, create_fragment$4, safe_not_equal, {
+    			x: 0,
+    			y: 1,
+    			diameter: 2,
+    			value: 6,
+    			color: 3
+    		});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
@@ -1001,12 +1054,16 @@ var app = (function () {
     			console_1$1.warn("<Mole> was created without expected prop 'y'");
     		}
 
-    		if (/*width*/ ctx[2] === undefined && !("width" in props)) {
-    			console_1$1.warn("<Mole> was created without expected prop 'width'");
+    		if (/*diameter*/ ctx[2] === undefined && !("diameter" in props)) {
+    			console_1$1.warn("<Mole> was created without expected prop 'diameter'");
     		}
 
-    		if (/*value*/ ctx[5] === undefined && !("value" in props)) {
+    		if (/*value*/ ctx[6] === undefined && !("value" in props)) {
     			console_1$1.warn("<Mole> was created without expected prop 'value'");
+    		}
+
+    		if (/*color*/ ctx[3] === undefined && !("color" in props)) {
+    			console_1$1.warn("<Mole> was created without expected prop 'color'");
     		}
     	}
 
@@ -1026,11 +1083,11 @@ var app = (function () {
     		throw new Error("<Mole>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
-    	get width() {
+    	get diameter() {
     		throw new Error("<Mole>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
-    	set width(value) {
+    	set diameter(value) {
     		throw new Error("<Mole>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
@@ -1041,49 +1098,265 @@ var app = (function () {
     	set value(value) {
     		throw new Error("<Mole>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
+
+    	get color() {
+    		throw new Error("<Mole>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set color(value) {
+    		throw new Error("<Mole>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+    }
+
+    function roundToTwo(num) {    
+        return +(Math.round(num + "e+2")  + "e-2");
+    }
+
+    function getRandomInRange(low, high) {
+    	return Math.random() * (high - low) + low;
+    }
+
+    function rerange (value, inLow, inHigh, outLow, outHigh) {
+        return (value - inLow) * (outHigh - outLow) / (inHigh - inLow) + outLow;
+    }
+
+    function matchItemWithinRange(value, inLow, inHigh, items) {
+    	const step = (inHigh - inLow) / items.length;
+    	for(let i = 0; i < items.length; i++) {
+    		let limitLow = step * i + inLow;
+    		let limitHigh = step * (i + 1) + inLow;
+    		if(value >= limitLow && value <= limitHigh) {
+    			return items[i]
+    		}
+    	}
+    }
+
+    function getAbsoluteBounds(relativeBounds, width, height) {
+    	const {x1: rX1, y1: rY1, x2: rX2, y2: rY2} = relativeBounds;
+    	return {x1: rX1 * width, 
+    			y1: rY1 * height, 
+    			x2: rX2 * width, 
+    			y2: rY2 * height}		
+    }
+
+    function doCirclesOverlap (circle1, circle2) {
+    	const {x: c1X, y: c1Y, diameter: c1D} = circle1;
+    	const {x: c2X, y: c2Y, diameter: c2D} = circle2;
+    	const dist = Math.hypot(c2X-c1X, c2Y-c1Y);
+    	const c1R = c1D / 2;
+    	const c2R = c2D / 2;
+    	const rSum  = c1R + c2R;
+    	const rSumPadded = rSum + fittingPadding;
+        return (dist <= rSumPadded) ? true : false;
+    }
+
+    function getRandomCircle(bounds, diameter) {
+    	const {x1, y1, x2, y2} = bounds;
+    	const x = roundToTwo(getRandomInRange(x1, x2));
+    	const y = roundToTwo(getRandomInRange(y1, y2));
+    	return {x: x, y: y, diameter: diameter};
+    }
+
+    function fitRandomCircle(circles, bounds, diameter, attempts) {
+    	for(let i = 0; i < attempts; i++) {
+    		const newDiameter = roundToTwo(rerange(i, 0, attempts, diameter, fittingMinDiameter));
+    		const newCircle = getRandomCircle(bounds, newDiameter);
+    		const overlaps = circles.map( circle => doCirclesOverlap(circle, newCircle));
+    		if(overlaps.every(v => v == false)) {
+    			return newCircle;
+    		}
+    	}
+    }
+
+    function fitCircles(circlesAmount, bounds, diameterRange) {
+    	const {low: diamLow, high: diamHigh} = diameterRange;
+    	const firstCircle = getRandomCircle(bounds, diamHigh);	
+    	let circles = [firstCircle];
+    	for(let i = 0; i < circlesAmount; i++) {
+    		const newDiameter = roundToTwo(getRandomInRange(diamLow, diamHigh));
+    		const newCircle = fitRandomCircle(circles, bounds, newDiameter, fittingAttempts);
+    		if(newCircle) {
+    			circles.push(newCircle);
+    		}
+    	}
+    	return circles;
+    }
+
+
+    function getMolesFromCircles(circles) {
+    	circles.map((circle) => {
+    		const diameter = circle.diameter;
+    		const value = Math.round(rerange(diameter, 
+    										 fittingMinDiameter, 
+    										 fittingDiameterRange.high, 
+    										 moleValueRange.high, 
+    										 moleValueRange.low));
+
+    		const color = matchItemWithinRange(diameter,
+    										   fittingMinDiameter,
+    										   fittingDiameterRange.high,
+    										   moleColorRange);
+    		let mole = circle;
+    			mole.value = value;
+    			mole.color = color;
+    		return mole;
+    	});
+    }
+
+    function generateMoles(width, height) {
+    	const absBounds = getAbsoluteBounds(levelBounds, width, height);
+    	const circles = fitCircles(moleAmount, absBounds, fittingDiameterRange);
+    	getMolesFromCircles(circles);
+    	return circles;
     }
 
     /* src/Game.svelte generated by Svelte v3.38.2 */
 
     const { console: console_1 } = globals;
 
-    function create_fragment$3(ctx) {
+    function get_each_context(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[9] = list[i];
+    	return child_ctx;
+    }
+
+    // (45:0) {#each moles as mole}
+    function create_each_block(ctx) {
+    	let mole;
     	let current;
-    	const default_slot_template = /*#slots*/ ctx[1].default;
-    	const default_slot = create_slot(default_slot_template, ctx, /*$$scope*/ ctx[0], null);
+    	const mole_spread_levels = [/*mole*/ ctx[9]];
+    	let mole_props = {};
+
+    	for (let i = 0; i < mole_spread_levels.length; i += 1) {
+    		mole_props = assign(mole_props, mole_spread_levels[i]);
+    	}
+
+    	mole = new Mole({ props: mole_props, $$inline: true });
 
     	const block = {
     		c: function create() {
-    			if (default_slot) default_slot.c();
+    			create_component(mole.$$.fragment);
+    		},
+    		m: function mount(target, anchor) {
+    			mount_component(mole, target, anchor);
+    			current = true;
+    		},
+    		p: function update(ctx, dirty) {
+    			const mole_changes = (dirty & /*moles*/ 1)
+    			? get_spread_update(mole_spread_levels, [get_spread_object(/*mole*/ ctx[9])])
+    			: {};
+
+    			mole.$set(mole_changes);
+    		},
+    		i: function intro(local) {
+    			if (current) return;
+    			transition_in(mole.$$.fragment, local);
+    			current = true;
+    		},
+    		o: function outro(local) {
+    			transition_out(mole.$$.fragment, local);
+    			current = false;
+    		},
+    		d: function destroy(detaching) {
+    			destroy_component(mole, detaching);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block.name,
+    		type: "each",
+    		source: "(45:0) {#each moles as mole}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment$3(ctx) {
+    	let each_1_anchor;
+    	let current;
+    	let each_value = /*moles*/ ctx[0];
+    	validate_each_argument(each_value);
+    	let each_blocks = [];
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		each_blocks[i] = create_each_block(get_each_context(ctx, each_value, i));
+    	}
+
+    	const out = i => transition_out(each_blocks[i], 1, 1, () => {
+    		each_blocks[i] = null;
+    	});
+
+    	const block = {
+    		c: function create() {
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			each_1_anchor = empty();
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
-    			if (default_slot) {
-    				default_slot.m(target, anchor);
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].m(target, anchor);
     			}
 
+    			insert_dev(target, each_1_anchor, anchor);
     			current = true;
     		},
     		p: function update(ctx, [dirty]) {
-    			if (default_slot) {
-    				if (default_slot.p && (!current || dirty & /*$$scope*/ 1)) {
-    					update_slot(default_slot, default_slot_template, ctx, /*$$scope*/ ctx[0], dirty, null, null);
+    			if (dirty & /*moles*/ 1) {
+    				each_value = /*moles*/ ctx[0];
+    				validate_each_argument(each_value);
+    				let i;
+
+    				for (i = 0; i < each_value.length; i += 1) {
+    					const child_ctx = get_each_context(ctx, each_value, i);
+
+    					if (each_blocks[i]) {
+    						each_blocks[i].p(child_ctx, dirty);
+    						transition_in(each_blocks[i], 1);
+    					} else {
+    						each_blocks[i] = create_each_block(child_ctx);
+    						each_blocks[i].c();
+    						transition_in(each_blocks[i], 1);
+    						each_blocks[i].m(each_1_anchor.parentNode, each_1_anchor);
+    					}
     				}
+
+    				group_outros();
+
+    				for (i = each_value.length; i < each_blocks.length; i += 1) {
+    					out(i);
+    				}
+
+    				check_outros();
     			}
     		},
     		i: function intro(local) {
     			if (current) return;
-    			transition_in(default_slot, local);
+
+    			for (let i = 0; i < each_value.length; i += 1) {
+    				transition_in(each_blocks[i]);
+    			}
+
     			current = true;
     		},
     		o: function outro(local) {
-    			transition_out(default_slot, local);
+    			each_blocks = each_blocks.filter(Boolean);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				transition_out(each_blocks[i]);
+    			}
+
     			current = false;
     		},
     		d: function destroy(detaching) {
-    			if (default_slot) default_slot.d(detaching);
+    			destroy_each(each_blocks, detaching);
+    			if (detaching) detach_dev(each_1_anchor);
     		}
     	};
 
@@ -1099,11 +1372,18 @@ var app = (function () {
     }
 
     function instance$3($$self, $$props, $$invalidate) {
+    	let $width;
+    	let $height;
     	let $gameTicker;
+    	validate_store(width, "width");
+    	component_subscribe($$self, width, $$value => $$invalidate(2, $width = $$value));
+    	validate_store(height, "height");
+    	component_subscribe($$self, height, $$value => $$invalidate(3, $height = $$value));
     	validate_store(gameTicker, "gameTicker");
-    	component_subscribe($$self, gameTicker, $$value => $$invalidate(3, $gameTicker = $$value));
+    	component_subscribe($$self, gameTicker, $$value => $$invalidate(4, $gameTicker = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
-    	validate_slots("Game", slots, ['default']);
+    	validate_slots("Game", slots, []);
+    	const moles = generateMoles($width, $height);
     	let gameLoopInterval;
 
     	onMount(() => {
@@ -1111,8 +1391,8 @@ var app = (function () {
     	});
 
     	onDestroy(() => {
-    		resetTicker();
     		clearInterval(gameLoopInterval);
+    		resetTicker();
     	});
 
     	function startGameLoop() {
@@ -1147,23 +1427,25 @@ var app = (function () {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console_1.warn(`<Game> was created with unknown prop '${key}'`);
     	});
 
-    	$$self.$$set = $$props => {
-    		if ("$$scope" in $$props) $$invalidate(0, $$scope = $$props.$$scope);
-    	};
-
     	$$self.$capture_state = () => ({
     		onMount,
     		onDestroy,
     		Mole,
     		gameTickTime,
     		gameEndTime,
+    		generateMoles,
     		gameState,
     		gameTicker,
+    		width,
+    		height,
+    		moles,
     		gameLoopInterval,
     		startGameLoop,
     		updateTicker,
     		resetTicker,
     		handleTicks,
+    		$width,
+    		$height,
     		$gameTicker
     	});
 
@@ -1175,7 +1457,7 @@ var app = (function () {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [$$scope, slots];
+    	return [moles];
     }
 
     class Game extends SvelteComponentDev {
@@ -1462,75 +1744,7 @@ var app = (function () {
     	}
     }
 
-    const MINR = 50;
-    const PADDING = 25;
-    const ATTEMPTS = 1000;
-
-    function roundToTwo(num) {    
-        return +(Math.round(num + "e+2")  + "e-2");
-    }
-
-    function getRandomInRange(low, high) {
-    	return roundToTwo(Math.random() * (high - low) + low);
-    }
-
-    function rerange (value, inMin, inMax, outMin, outMax) {
-        return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-    }
-
-    function getAbsoluteBounds(relativeBounds, width, height) {
-    	const {x1: rX1, y1: rY1, x2: rX2, y2: rY2} = relativeBounds;
-    	return {x1: rX1 * width, 
-    			y1: rY1 * height, 
-    			x2: rX2 * width, 
-    			y2: rY2 * height}		
-    }
-
-    function doCirclesOverlap (circle1, circle2) {
-    	const {x: c1X, y: c1Y, d: c1D} = circle1;
-    	const {x: c2X, y: c2Y, d: c2D} = circle2;
-    	const dist = Math.hypot(c2X-c1X, c2Y-c1Y);
-    	const c1R = c1D / 2;
-    	const c2R = c2D / 2;
-    	const rSum  = c1R + c2R;
-    	const rSumPadded = rSum + PADDING;
-        return (dist <= rSumPadded) ? true : false;
-    }
-
-    function getRandomCircle(bounds, diameter) {
-    	const {x1, y1, x2, y2} = bounds;
-    	const x = getRandomInRange(x1, x2);
-    	const y = getRandomInRange(y1, y2);
-    	return {x: x, y: y, d: diameter};
-    }
-
-    function fitRandomCircle(circles, bounds, diameter, attempts) {
-    	for(let i = 0; i < attempts; i++) {
-    		const newDiameter = rerange(i, 0, attempts, diameter, MINR);
-    		const newCircle = getRandomCircle(bounds, newDiameter);
-    		const overlaps = circles.map( circle => doCirclesOverlap(circle, newCircle));
-    		if(overlaps.every(v => v == false)) {
-    			return newCircle;
-    		}
-    	}
-    }
-
-    function fitCircles(circlesAmount, bounds, diameterRange) {
-    	const {diamLow, diamHigh} = diameterRange;
-    	const firstCircle = getRandomCircle(bounds, diamHigh);	
-    	let circles = [firstCircle];
-    	for(let i = 0; i < circlesAmount; i++) {
-    		const newDiameter = getRandomInRange(diamLow, diamHigh);
-    		const newCircle = fitRandomCircle(circles, bounds, newDiameter, ATTEMPTS);
-    		if(newCircle) {
-    			circles.push(newCircle);
-    		}
-    	}
-    	return circles;
-    }
-
     /* src/App.svelte generated by Svelte v3.38.2 */
-
     const file = "src/App.svelte";
 
     // (36:1) {:else}
@@ -1677,7 +1891,7 @@ var app = (function () {
     			set_style(section, "width", /*$width*/ ctx[0] + "px");
     			set_style(section, "height", /*$height*/ ctx[1] + "px");
     			attr_dev(section, "class", "svelte-axqofr");
-    			add_location(section, file, 30, 0, 768);
+    			add_location(section, file, 30, 0, 672);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1783,10 +1997,6 @@ var app = (function () {
     		width,
     		height,
     		gameState,
-    		fitCircles,
-    		fitRandomCircle,
-    		getRandomCircle,
-    		getAbsoluteBounds,
     		$width,
     		$height,
     		$gameState

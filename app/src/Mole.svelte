@@ -7,7 +7,7 @@
 
 	import {gameTicker, gameScore} from './store.js';
 
-	export let x, y, width, value
+	export let x, y, diameter, value, color
 
 	let isActive = false
 	$: $gameTicker, handleTicks();
@@ -21,7 +21,6 @@
 			isActive = true
 		}
 	}
-
 	function handleClick() {
 		if(isActive) {
 			console.log("active")
@@ -29,7 +28,6 @@
 			updateScore()
 		}
 	}
-
 	function updateScore() {
 		let v = parseInt(value)
 		gameScore.update(score => score + v)
@@ -49,12 +47,20 @@
 		height: var(--size);
 		left: var(--x);
 		top: var(--y);
-		background-size: cover;
-		background-image: var(--inactivePath);
+		background-color: var(--color);
+		border-radius: 100%;
+		/*background-size: cover;*/
+		/*background-image: var(--inactivePath);*/
+	}
+
+	span.inactive {
+		background-color: var(--color);
+		/*background-image: var(--activePath);*/
 	}
 
 	span.active {
-		background-image: var(--activePath);
+		background-color: white;
+		/*background-image: var(--activePath);*/
 	}
 
 	span:active{
@@ -68,10 +74,12 @@
 </style>
 
 <span on:click={handleClick} 
+	  class:inactive={!isActive}
 	  class:active={isActive}
-	  style="--size:{width}px; 
+	  style="--size:{diameter}px; 
 	  		 --x:{x}px; 
 	  		 --y:{y}px;
+	  		 --color: {color};
 	  		 --activePath: url({moleActiveImgPath});
 	  		 --inactivePath: url({moleInactiveImgPath});">
 </span>

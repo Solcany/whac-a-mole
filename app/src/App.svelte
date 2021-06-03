@@ -4,9 +4,9 @@
 	import GameEnd from './GameEnd.svelte';        
 	import Mole from './Mole.svelte';
 	import Circle from './Circle.svelte';
-
-	import { width, height, gameState} from './store.js';
-	import { fitCircles, fitRandomCircle, getRandomCircle, getAbsoluteBounds } from './levelGeneration.js';
+	import { width, 
+			 height, 
+			 gameState} from './store.js';
 
 	// const boundsRelative = {x1: 0.0, y1: 0.0, x2: 1.0,  y2: 1.0}
 	// const bounds = getAbsoluteBounds(boundsRelative, $width, $height)

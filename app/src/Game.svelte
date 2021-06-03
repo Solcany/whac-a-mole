@@ -3,18 +3,21 @@ import { onMount, onDestroy } from 'svelte';
 import Mole from './Mole.svelte';
 
 import { gameTickTime, gameEndTime } from './settings.js'
-import { gameState } from './store.js'
-import { gameTicker } from './store.js'
+import { generateMoles } from './moleGenerator.js';
+import { gameState, 
+		 gameTicker, 
+		 width, 
+		 height } from './store.js'
+
+const moles = generateMoles($width, $height);
 
 let gameLoopInterval
-
 onMount(() => {
 	startGameLoop()
 })
-
 onDestroy(() => {
+	clearInterval(gameLoopInterval);	
 	resetTicker();
-	clearInterval(gameLoopInterval);
 })
 
 function startGameLoop() {
@@ -23,7 +26,6 @@ function startGameLoop() {
 					updateTicker()
 				}, gameTickTime)
 }
-
 function updateTicker() {
 	gameTicker.update(t => t + gameTickTime)
 }
@@ -38,25 +40,14 @@ function handleTicks() {
 		gameState.set("gameEnd")
 	}
 }
-
-// onMount(() => {
-
-// }
-//console.log(gameTicker);
-
-// function gameLoop() {
-// 	console.log()
-// 	setTimeout(gameLoop, gameTick)
-// }
-
-//onMount(() => {
-	//gameLoop()
-//})
-
 </script>
 
+{#each moles as mole}
+	<Mole {...mole}/>
+{/each}
 
-<slot></slot>
+
+
 
 
 
