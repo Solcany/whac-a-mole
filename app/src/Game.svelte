@@ -1,11 +1,12 @@
 <script>
 import { onMount, onDestroy } from 'svelte';
+import ProgressBar from './ProgressBar.svelte';
 import Mole from './Mole.svelte';
 
-import { gameTickTime, gameEndTime } from './settings.js'
+import { gameTimeUnit, gameTickTime, gameEndTime } from './settings.js'
 import { generateMoles } from './moleGenerator.js';
 import { gameState, 
-		 gameTicker, 
+		 gameTime, 
 		 width, 
 		 height } from './store.js'
 
@@ -17,35 +18,36 @@ onMount(() => {
 })
 onDestroy(() => {
 	clearInterval(gameLoopInterval);	
-	resetTicker();
+	resetTime();
 })
 
 function startGameLoop() {
 	gameLoopInterval = setInterval(() =>  {
-					handleTicks()
-					updateTicker()
-				}, gameTickTime)
+					handleTime()
+					updateTime()
+				}, gameTimeUnit)
 }
-function updateTicker() {
-	gameTicker.update(t => t + gameTickTime)
-}
-
-function resetTicker() {
-	gameTicker.set(0)
-}
-
-function handleTicks() {
-	console.log($gameTicker);
-	if($gameTicker >= gameEndTime) {
+function handleTime() {
+	if($gameTime >= gameEndTime) {
 		gameState.set("gameEnd")
 	}
 }
+
+function updateTime() {
+	gameTime.update(t => t + gameTimeUnit)
+}
+
+function resetTime() {
+	gameTime.set(0)
+}
+
+
 </script>
 
 {#each moles as mole}
 	<Mole {...mole}/>
 {/each}
-
+<ProgressBar/>
 
 
 

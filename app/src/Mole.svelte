@@ -1,42 +1,41 @@
 <script>
 	import {onMount, onDestroy} from 'svelte';
-
-	import {moleActiveImgPath,
+	import {gameTickTime,
+			moleActiveImgPath,
 			moleInactiveImgPath,
 			moleActivationChance} from './settings.js';
-
-	import {gameTicker, gameScore} from './store.js';
+	import {gameTime, gameScore} from './store.js';
 
 	export let x, y, diameter, value, color
-
 	let isActive = false
-	$: $gameTicker, handleTicks();
+	$: $gameTime, handleTime();
 
-	function handleTicks() {
-		// reset mole on tick
-		isActive = false
-
-		// activate mole on chance
-		if(coinToss(moleActivationChance)) {
-			isActive = true
+	function handleTime() {
+		let isTick = ($gameTime % gameTickTime == 0) ? true : false;
+		if(isTick) {
+			// reset mole on tick
+			isActive = false;
+			// activate mole on chance
+			if(coinToss(moleActivationChance)) {
+				isActive = true;
+			}
 		}
 	}
 	function handleClick() {
 		if(isActive) {
-			console.log("active")
-			isActive = false
-			updateScore()
+			isActive = false;
+			updateScore();
 		}
 	}
+
 	function updateScore() {
-		let v = parseInt(value)
-		gameScore.update(score => score + v)
+		let v = parseInt(value);
+		gameScore.update(score => score + v);
 	}
 
 	function coinToss(chance) {
 		return (Math.random() < chance ? true : false);
 	}
-
 </script>
 
 <style>
@@ -49,6 +48,7 @@
 		top: var(--y);
 		background-color: var(--color);
 		border-radius: 100%;
+		z-index: 1;
 		/*background-size: cover;*/
 		/*background-image: var(--inactivePath);*/
 	}
@@ -70,7 +70,6 @@
 	span.active:hover {
 		cursor: pointer;
 	}
-
 </style>
 
 <span on:click={handleClick} 

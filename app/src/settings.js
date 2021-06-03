@@ -1,5 +1,6 @@
 // game 
-export const gameTickTime = 10000;
+export const gameTickTime = 3000;
+export const gameTimeUnit = 100;
 export const gameEndTime = 10000;
 
 // level
