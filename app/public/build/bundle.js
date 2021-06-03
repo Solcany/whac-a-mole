@@ -137,6 +137,67 @@ var app = (function () {
         return e;
     }
 
+    const active_docs = new Set();
+    let active = 0;
+    // https://github.com/darkskyapp/string-hash/blob/master/index.js
+    function hash(str) {
+        let hash = 5381;
+        let i = str.length;
+        while (i--)
+            hash = ((hash << 5) - hash) ^ str.charCodeAt(i);
+        return hash >>> 0;
+    }
+    function create_rule(node, a, b, duration, delay, ease, fn, uid = 0) {
+        const step = 16.666 / duration;
+        let keyframes = '{\n';
+        for (let p = 0; p <= 1; p += step) {
+            const t = a + (b - a) * ease(p);
+            keyframes += p * 100 + `%{${fn(t, 1 - t)}}\n`;
+        }
+        const rule = keyframes + `100% {${fn(b, 1 - b)}}\n}`;
+        const name = `__svelte_${hash(rule)}_${uid}`;
+        const doc = node.ownerDocument;
+        active_docs.add(doc);
+        const stylesheet = doc.__svelte_stylesheet || (doc.__svelte_stylesheet = doc.head.appendChild(element('style')).sheet);
+        const current_rules = doc.__svelte_rules || (doc.__svelte_rules = {});
+        if (!current_rules[name]) {
+            current_rules[name] = true;
+            stylesheet.insertRule(`@keyframes ${name} ${rule}`, stylesheet.cssRules.length);
+        }
+        const animation = node.style.animation || '';
+        node.style.animation = `${animation ? `${animation}, ` : ''}${name} ${duration}ms linear ${delay}ms 1 both`;
+        active += 1;
+        return name;
+    }
+    function delete_rule(node, name) {
+        const previous = (node.style.animation || '').split(', ');
+        const next = previous.filter(name
+            ? anim => anim.indexOf(name) < 0 // remove specific animation
+            : anim => anim.indexOf('__svelte') === -1 // remove all Svelte animations
+        );
+        const deleted = previous.length - next.length;
+        if (deleted) {
+            node.style.animation = next.join(', ');
+            active -= deleted;
+            if (!active)
+                clear_rules();
+        }
+    }
+    function clear_rules() {
+        raf(() => {
+            if (active)
+                return;
+            active_docs.forEach(doc => {
+                const stylesheet = doc.__svelte_stylesheet;
+                let i = stylesheet.cssRules.length;
+                while (i--)
+                    stylesheet.deleteRule(i);
+                doc.__svelte_rules = {};
+            });
+            active_docs.clear();
+        });
+    }
+
     let current_component;
     function set_current_component(component) {
         current_component = component;
@@ -216,6 +277,20 @@ var app = (function () {
             $$.after_update.forEach(add_render_callback);
         }
     }
+
+    let promise;
+    function wait() {
+        if (!promise) {
+            promise = Promise.resolve();
+            promise.then(() => {
+                promise = null;
+            });
+        }
+        return promise;
+    }
+    function dispatch(node, direction, kind) {
+        node.dispatchEvent(custom_event(`${direction ? 'intro' : 'outro'}${kind}`));
+    }
     const outroing = new Set();
     let outros;
     function group_outros() {
@@ -252,6 +327,112 @@ var app = (function () {
             });
             block.o(local);
         }
+    }
+    const null_transition = { duration: 0 };
+    function create_bidirectional_transition(node, fn, params, intro) {
+        let config = fn(node, params);
+        let t = intro ? 0 : 1;
+        let running_program = null;
+        let pending_program = null;
+        let animation_name = null;
+        function clear_animation() {
+            if (animation_name)
+                delete_rule(node, animation_name);
+        }
+        function init(program, duration) {
+            const d = program.b - t;
+            duration *= Math.abs(d);
+            return {
+                a: t,
+                b: program.b,
+                d,
+                duration,
+                start: program.start,
+                end: program.start + duration,
+                group: program.group
+            };
+        }
+        function go(b) {
+            const { delay = 0, duration = 300, easing = identity, tick = noop, css } = config || null_transition;
+            const program = {
+                start: now() + delay,
+                b
+            };
+            if (!b) {
+                // @ts-ignore todo: improve typings
+                program.group = outros;
+                outros.r += 1;
+            }
+            if (running_program || pending_program) {
+                pending_program = program;
+            }
+            else {
+                // if this is an intro, and there's a delay, we need to do
+                // an initial tick and/or apply CSS animation immediately
+                if (css) {
+                    clear_animation();
+                    animation_name = create_rule(node, t, b, duration, delay, easing, css);
+                }
+                if (b)
+                    tick(0, 1);
+                running_program = init(program, duration);
+                add_render_callback(() => dispatch(node, b, 'start'));
+                loop(now => {
+                    if (pending_program && now > pending_program.start) {
+                        running_program = init(pending_program, duration);
+                        pending_program = null;
+                        dispatch(node, running_program.b, 'start');
+                        if (css) {
+                            clear_animation();
+                            animation_name = create_rule(node, t, running_program.b, running_program.duration, 0, easing, config.css);
+                        }
+                    }
+                    if (running_program) {
+                        if (now >= running_program.end) {
+                            tick(t = running_program.b, 1 - t);
+                            dispatch(node, running_program.b, 'end');
+                            if (!pending_program) {
+                                // we're done
+                                if (running_program.b) {
+                                    // intro — we can tidy up immediately
+                                    clear_animation();
+                                }
+                                else {
+                                    // outro — needs to be coordinated
+                                    if (!--running_program.group.r)
+                                        run_all(running_program.group.c);
+                                }
+                            }
+                            running_program = null;
+                        }
+                        else if (now >= running_program.start) {
+                            const p = now - running_program.start;
+                            t = running_program.a + running_program.d * easing(p / running_program.duration);
+                            tick(t, 1 - t);
+                        }
+                    }
+                    return !!(running_program || pending_program);
+                });
+            }
+        }
+        return {
+            run(b) {
+                if (is_function(config)) {
+                    wait().then(() => {
+                        // @ts-ignore
+                        config = config();
+                        go(b);
+                    });
+                }
+                else {
+                    go(b);
+                }
+            },
+            end() {
+                clear_animation();
+                running_program = pending_program = null;
+            }
+        };
     }
 
     function get_spread_update(levels, updates) {
@@ -497,7 +678,7 @@ var app = (function () {
 
     /* src/Button.svelte generated by Svelte v3.38.2 */
 
-    const file$6 = "src/Button.svelte";
+    const file$7 = "src/Button.svelte";
 
     function create_fragment$7(ctx) {
     	let button;
@@ -510,7 +691,7 @@ var app = (function () {
     			button = element("button");
     			t = text(/*text*/ ctx[1]);
     			attr_dev(button, "class", "svelte-11gdmub");
-    			add_location(button, file$6, 12, 0, 126);
+    			add_location(button, file$7, 12, 0, 126);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -681,25 +862,32 @@ var app = (function () {
         return { set, update, subscribe };
     }
 
+    // assets
+    const imgPath = "../assets/image/";
+
+    // ui
+    const orange = "#D0B17E";
+    const pink = "#DF84A7";
+
     // game 
-    const gameTickTime = 3000;
+    const gameTickTime = 1000;
     const gameTimeUnit = 100;
     const gameEndTime = 10000;
+    const gameBackgroundImgPath = imgPath + "background.jpg";
 
     // level
-    const fittingMinDiameter = 75;
-    const fittingPadding = 50;
-    const fittingAttempts = 1000;
-    const fittingDiameterRange = {low: 150, high: 250};
-    const levelBounds = {x1: 0.2, y1: 0.2, x2: 0.8, y2: 0.8};
+    const fittingMinDiameter = 50;
+    const fittingPadding = 15;
+    const fittingAttempts = 800;
+    const fittingDiameterRange = {low: 200, high: 350};
+    const levelBounds = {x1: 0.1, y1: 0.2, x2: 0.9, y2: 0.8};
 
     // mole
-    const moleAmount = 50;
-    const moleActivationChance = 0.5;
-    const moleActiveImgPath = "../assets/image/mole_active.png";
-    const moleInactiveImgPath = "../assets/image/mole_inactive.png";
-    const moleColorRange = ["red", "blue", "pink"];
-    const moleValueRange = {low: 10, high: 30};
+    const moleAmount = 125;
+    const moleInactiveImgPath = imgPath + "mole_inactive.png";
+    const moleActiveImgRange = ["4.png", "3.png", "2.png", "1.png"];
+    const moleValueRange = [100, 25, 15, 5];
+    const moleActivationChanceRange = [0.07, 0.15, 0.25, 0.37];
 
     const width = writable(window.innerWidth);
     const height = writable(window.innerHeight);
@@ -718,7 +906,7 @@ var app = (function () {
     // });
 
     /* src/GameStart.svelte generated by Svelte v3.38.2 */
-    const file$5 = "src/GameStart.svelte";
+    const file$6 = "src/GameStart.svelte";
 
     // (28:0) {#if $gameState == "gameStart"}
     function create_if_block$1(ctx) {
@@ -739,7 +927,7 @@ var app = (function () {
     			nav = element("nav");
     			create_component(button.$$.fragment);
     			attr_dev(nav, "class", "svelte-nyfbc7");
-    			add_location(nav, file$5, 28, 1, 394);
+    			add_location(nav, file$6, 28, 1, 394);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, nav, anchor);
@@ -876,6 +1064,16 @@ var app = (function () {
     	}
     }
 
+    function fade(node, { delay = 0, duration = 400, easing = identity } = {}) {
+        const o = +getComputedStyle(node).opacity;
+        return {
+            delay,
+            duration,
+            easing,
+            css: t => `opacity: ${t * o}`
+        };
+    }
+
     function is_date(obj) {
         return Object.prototype.toString.call(obj) === '[object Date]';
     }
@@ -976,7 +1174,7 @@ var app = (function () {
     }
 
     /* src/ProgressBar.svelte generated by Svelte v3.38.2 */
-    const file$4 = "src/ProgressBar.svelte";
+    const file$5 = "src/ProgressBar.svelte";
 
     function create_fragment$5(ctx) {
     	let div1;
@@ -986,11 +1184,13 @@ var app = (function () {
     		c: function create() {
     			div1 = element("div");
     			div0 = element("div");
-    			attr_dev(div0, "class", "progressBar svelte-19sihop");
+    			attr_dev(div0, "class", "progressBar svelte-6zlrub");
     			set_style(div0, "width", /*$progressTweened*/ ctx[0] + "%");
-    			add_location(div0, file$4, 30, 1, 542);
-    			attr_dev(div1, "class", "progressContainer svelte-19sihop");
-    			add_location(div1, file$4, 29, 0, 509);
+    			set_style(div0, "--pink", pink);
+    			set_style(div0, "--orange", orange);
+    			add_location(div0, file$5, 31, 1, 597);
+    			attr_dev(div1, "class", "progressContainer svelte-6zlrub");
+    			add_location(div1, file$5, 30, 0, 564);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1042,6 +1242,8 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		tweened,
     		gameEndTime,
+    		pink,
+    		orange,
     		width,
     		gameTime,
     		progressTweened,
@@ -1085,10 +1287,87 @@ var app = (function () {
     	}
     }
 
+    /* src/LiveScore.svelte generated by Svelte v3.38.2 */
+    const file$4 = "src/LiveScore.svelte";
+
+    function create_fragment$4(ctx) {
+    	let div;
+    	let h2;
+    	let t;
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			h2 = element("h2");
+    			t = text(/*$gameScore*/ ctx[0]);
+    			attr_dev(h2, "class", "liveScore svelte-ix0ynb");
+    			add_location(h2, file$4, 29, 1, 457);
+    			attr_dev(div, "class", "scoreContainer svelte-ix0ynb");
+    			add_location(div, file$4, 28, 0, 427);
+    		},
+    		l: function claim(nodes) {
+    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, h2);
+    			append_dev(h2, t);
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (dirty & /*$gameScore*/ 1) set_data_dev(t, /*$gameScore*/ ctx[0]);
+    		},
+    		i: noop,
+    		o: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_fragment$4.name,
+    		type: "component",
+    		source: "",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function instance$4($$self, $$props, $$invalidate) {
+    	let $gameScore;
+    	validate_store(gameScore, "gameScore");
+    	component_subscribe($$self, gameScore, $$value => $$invalidate(0, $gameScore = $$value));
+    	let { $$slots: slots = {}, $$scope } = $$props;
+    	validate_slots("LiveScore", slots, []);
+    	const writable_props = [];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<LiveScore> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$capture_state = () => ({ gameScore, $gameScore });
+    	return [$gameScore];
+    }
+
+    class LiveScore extends SvelteComponentDev {
+    	constructor(options) {
+    		super(options);
+    		init(this, options, instance$4, create_fragment$4, safe_not_equal, {});
+
+    		dispatch_dev("SvelteRegisterComponent", {
+    			component: this,
+    			tagName: "LiveScore",
+    			options,
+    			id: create_fragment$4.name
+    		});
+    	}
+    }
+
     /* src/Mole.svelte generated by Svelte v3.38.2 */
     const file$3 = "src/Mole.svelte";
 
-    function create_fragment$4(ctx) {
+    function create_fragment$3(ctx) {
     	let span;
     	let mounted;
     	let dispose;
@@ -1099,13 +1378,12 @@ var app = (function () {
     			set_style(span, "--size", /*diameter*/ ctx[2] + "px");
     			set_style(span, "--x", /*x*/ ctx[0] + "px");
     			set_style(span, "--y", /*y*/ ctx[1] + "px");
-    			set_style(span, "--color", /*color*/ ctx[3]);
-    			set_style(span, "--activePath", "url(" + moleActiveImgPath + ")");
+    			set_style(span, "--activePath", "url(" + imgPath + "mole_active_" + /*activeImgSrc*/ ctx[3] + ")");
     			set_style(span, "--inactivePath", "url(" + moleInactiveImgPath + ")");
-    			attr_dev(span, "class", "svelte-1y5lokz");
+    			attr_dev(span, "class", "svelte-90dh7e");
     			toggle_class(span, "inactive", !/*isActive*/ ctx[4]);
     			toggle_class(span, "active", /*isActive*/ ctx[4]);
-    			add_location(span, file$3, 74, 0, 1421);
+    			add_location(span, file$3, 83, 0, 1569);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1131,8 +1409,8 @@ var app = (function () {
     				set_style(span, "--y", /*y*/ ctx[1] + "px");
     			}
 
-    			if (dirty & /*color*/ 8) {
-    				set_style(span, "--color", /*color*/ ctx[3]);
+    			if (dirty & /*activeImgSrc*/ 8) {
+    				set_style(span, "--activePath", "url(" + imgPath + "mole_active_" + /*activeImgSrc*/ ctx[3] + ")");
     			}
 
     			if (dirty & /*isActive*/ 16) {
@@ -1154,7 +1432,7 @@ var app = (function () {
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$4.name,
+    		id: create_fragment$3.name,
     		type: "component",
     		source: "",
     		ctx
@@ -1163,14 +1441,10 @@ var app = (function () {
     	return block;
     }
 
-    function coinToss(chance) {
-    	return Math.random() < chance ? true : false;
-    }
-
-    function instance$4($$self, $$props, $$invalidate) {
+    function instance$3($$self, $$props, $$invalidate) {
     	let $gameTime;
     	validate_store(gameTime, "gameTime");
-    	component_subscribe($$self, gameTime, $$value => $$invalidate(7, $gameTime = $$value));
+    	component_subscribe($$self, gameTime, $$value => $$invalidate(8, $gameTime = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots("Mole", slots, []);
 
@@ -1178,7 +1452,8 @@ var app = (function () {
     		{ y } = $$props,
     		{ diameter } = $$props,
     		{ value } = $$props,
-    		{ color } = $$props;
+    		{ activeImgSrc } = $$props,
+    		{ activationChance } = $$props;
 
     	let isActive = false;
 
@@ -1190,7 +1465,7 @@ var app = (function () {
     			$$invalidate(4, isActive = false);
 
     			// activate mole on chance
-    			if (coinToss(moleActivationChance)) {
+    			if (coinToss()) {
     				$$invalidate(4, isActive = true);
     			}
     		}
@@ -1208,7 +1483,11 @@ var app = (function () {
     		gameScore.update(score => score + v);
     	}
 
-    	const writable_props = ["x", "y", "diameter", "value", "color"];
+    	function coinToss(chance) {
+    		return Math.random() < activationChance ? true : false;
+    	}
+
+    	const writable_props = ["x", "y", "diameter", "value", "activeImgSrc", "activationChance"];
 
     	Object.keys($$props).forEach(key => {
     		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Mole> was created with unknown prop '${key}'`);
@@ -1219,23 +1498,24 @@ var app = (function () {
     		if ("y" in $$props) $$invalidate(1, y = $$props.y);
     		if ("diameter" in $$props) $$invalidate(2, diameter = $$props.diameter);
     		if ("value" in $$props) $$invalidate(6, value = $$props.value);
-    		if ("color" in $$props) $$invalidate(3, color = $$props.color);
+    		if ("activeImgSrc" in $$props) $$invalidate(3, activeImgSrc = $$props.activeImgSrc);
+    		if ("activationChance" in $$props) $$invalidate(7, activationChance = $$props.activationChance);
     	};
 
     	$$self.$capture_state = () => ({
     		onMount,
     		onDestroy,
+    		imgPath,
     		gameTickTime,
-    		moleActiveImgPath,
     		moleInactiveImgPath,
-    		moleActivationChance,
     		gameTime,
     		gameScore,
     		x,
     		y,
     		diameter,
     		value,
-    		color,
+    		activeImgSrc,
+    		activationChance,
     		isActive,
     		handleTime,
     		handleClick,
@@ -1249,7 +1529,8 @@ var app = (function () {
     		if ("y" in $$props) $$invalidate(1, y = $$props.y);
     		if ("diameter" in $$props) $$invalidate(2, diameter = $$props.diameter);
     		if ("value" in $$props) $$invalidate(6, value = $$props.value);
-    		if ("color" in $$props) $$invalidate(3, color = $$props.color);
+    		if ("activeImgSrc" in $$props) $$invalidate(3, activeImgSrc = $$props.activeImgSrc);
+    		if ("activationChance" in $$props) $$invalidate(7, activationChance = $$props.activationChance);
     		if ("isActive" in $$props) $$invalidate(4, isActive = $$props.isActive);
     	};
 
@@ -1258,31 +1539,42 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*$gameTime*/ 128) {
+    		if ($$self.$$.dirty & /*$gameTime*/ 256) {
     			(handleTime());
     		}
     	};
 
-    	return [x, y, diameter, color, isActive, handleClick, value, $gameTime];
+    	return [
+    		x,
+    		y,
+    		diameter,
+    		activeImgSrc,
+    		isActive,
+    		handleClick,
+    		value,
+    		activationChance,
+    		$gameTime
+    	];
     }
 
     class Mole extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
 
-    		init(this, options, instance$4, create_fragment$4, safe_not_equal, {
+    		init(this, options, instance$3, create_fragment$3, safe_not_equal, {
     			x: 0,
     			y: 1,
     			diameter: 2,
     			value: 6,
-    			color: 3
+    			activeImgSrc: 3,
+    			activationChance: 7
     		});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Mole",
     			options,
-    			id: create_fragment$4.name
+    			id: create_fragment$3.name
     		});
 
     		const { ctx } = this.$$;
@@ -1304,8 +1596,12 @@ var app = (function () {
     			console.warn("<Mole> was created without expected prop 'value'");
     		}
 
-    		if (/*color*/ ctx[3] === undefined && !("color" in props)) {
-    			console.warn("<Mole> was created without expected prop 'color'");
+    		if (/*activeImgSrc*/ ctx[3] === undefined && !("activeImgSrc" in props)) {
+    			console.warn("<Mole> was created without expected prop 'activeImgSrc'");
+    		}
+
+    		if (/*activationChance*/ ctx[7] === undefined && !("activationChance" in props)) {
+    			console.warn("<Mole> was created without expected prop 'activationChance'");
     		}
     	}
 
@@ -1341,11 +1637,19 @@ var app = (function () {
     		throw new Error("<Mole>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
-    	get color() {
+    	get activeImgSrc() {
     		throw new Error("<Mole>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
 
-    	set color(value) {
+    	set activeImgSrc(value) {
+    		throw new Error("<Mole>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	get activationChance() {
+    		throw new Error("<Mole>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
+    	}
+
+    	set activationChance(value) {
     		throw new Error("<Mole>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
     }
@@ -1428,19 +1732,23 @@ var app = (function () {
     function getMolesFromCircles(circles) {
     	circles.map((circle) => {
     		const diameter = circle.diameter;
-    		const value = Math.round(rerange(diameter, 
-    										 fittingMinDiameter, 
-    										 fittingDiameterRange.high, 
-    										 moleValueRange.high, 
-    										 moleValueRange.low));
-
-    		const color = matchItemWithinRange(diameter,
+    		const value = matchItemWithinRange(diameter,
     										   fittingMinDiameter,
     										   fittingDiameterRange.high,
-    										   moleColorRange);
+    										   moleValueRange);
+    		const activeImgSrc = matchItemWithinRange(diameter,
+    										  		  fittingMinDiameter,
+    										  		  fittingDiameterRange.high,
+    										  		  moleActiveImgRange);
+    		const activationChance = matchItemWithinRange(diameter,
+    										   fittingMinDiameter,
+    										   fittingDiameterRange.high,
+    										   moleActivationChanceRange);		
     		let mole = circle;
     			mole.value = value;
-    			mole.color = color;
+    			mole.activeImgSrc = activeImgSrc;
+    			mole.activationChance = activationChance;
+
     		return mole;
     	});
     }
@@ -1453,6 +1761,7 @@ var app = (function () {
     }
 
     /* src/Game.svelte generated by Svelte v3.38.2 */
+    const file$2 = "src/Game.svelte";
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
@@ -1460,7 +1769,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (47:0) {#each moles as mole}
+    // (62:1) {#each moles as mole}
     function create_each_block(ctx) {
     	let mole;
     	let current;
@@ -1506,17 +1815,22 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(47:0) {#each moles as mole}",
+    		source: "(62:1) {#each moles as mole}",
     		ctx
     	});
 
     	return block;
     }
 
-    function create_fragment$3(ctx) {
-    	let t;
+    function create_fragment$2(ctx) {
+    	let div;
+    	let livescore;
+    	let t0;
+    	let t1;
     	let progressbar;
+    	let div_transition;
     	let current;
+    	livescore = new LiveScore({ $$inline: true });
     	let each_value = /*moles*/ ctx[0];
     	validate_each_argument(each_value);
     	let each_blocks = [];
@@ -1533,23 +1847,33 @@ var app = (function () {
 
     	const block = {
     		c: function create() {
+    			div = element("div");
+    			create_component(livescore.$$.fragment);
+    			t0 = space();
+
     			for (let i = 0; i < each_blocks.length; i += 1) {
     				each_blocks[i].c();
     			}
 
-    			t = space();
+    			t1 = space();
     			create_component(progressbar.$$.fragment);
+    			attr_dev(div, "class", "svelte-1h3srv6");
+    			add_location(div, file$2, 59, 0, 1052);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			mount_component(livescore, div, null);
+    			append_dev(div, t0);
+
     			for (let i = 0; i < each_blocks.length; i += 1) {
-    				each_blocks[i].m(target, anchor);
+    				each_blocks[i].m(div, null);
     			}
 
-    			insert_dev(target, t, anchor);
-    			mount_component(progressbar, target, anchor);
+    			append_dev(div, t1);
+    			mount_component(progressbar, div, null);
     			current = true;
     		},
     		p: function update(ctx, [dirty]) {
@@ -1568,7 +1892,7 @@ var app = (function () {
     						each_blocks[i] = create_each_block(child_ctx);
     						each_blocks[i].c();
     						transition_in(each_blocks[i], 1);
-    						each_blocks[i].m(t.parentNode, t);
+    						each_blocks[i].m(div, t1);
     					}
     				}
 
@@ -1583,15 +1907,23 @@ var app = (function () {
     		},
     		i: function intro(local) {
     			if (current) return;
+    			transition_in(livescore.$$.fragment, local);
 
     			for (let i = 0; i < each_value.length; i += 1) {
     				transition_in(each_blocks[i]);
     			}
 
     			transition_in(progressbar.$$.fragment, local);
+
+    			add_render_callback(() => {
+    				if (!div_transition) div_transition = create_bidirectional_transition(div, fade, { duration: 500 }, true);
+    				div_transition.run(1);
+    			});
+
     			current = true;
     		},
     		o: function outro(local) {
+    			transition_out(livescore.$$.fragment, local);
     			each_blocks = each_blocks.filter(Boolean);
 
     			for (let i = 0; i < each_blocks.length; i += 1) {
@@ -1599,18 +1931,22 @@ var app = (function () {
     			}
 
     			transition_out(progressbar.$$.fragment, local);
+    			if (!div_transition) div_transition = create_bidirectional_transition(div, fade, { duration: 500 }, false);
+    			div_transition.run(0);
     			current = false;
     		},
     		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    			destroy_component(livescore);
     			destroy_each(each_blocks, detaching);
-    			if (detaching) detach_dev(t);
-    			destroy_component(progressbar, detaching);
+    			destroy_component(progressbar);
+    			if (detaching && div_transition) div_transition.end();
     		}
     	};
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_fragment$3.name,
+    		id: create_fragment$2.name,
     		type: "component",
     		source: "",
     		ctx
@@ -1619,7 +1955,7 @@ var app = (function () {
     	return block;
     }
 
-    function instance$3($$self, $$props, $$invalidate) {
+    function instance$2($$self, $$props, $$invalidate) {
     	let $width;
     	let $height;
     	let $gameTime;
@@ -1635,11 +1971,15 @@ var app = (function () {
     	let gameLoopInterval;
 
     	onMount(() => {
-    		startGameLoop();
+    		setTimeout(
+    			() => {
+    				startGameLoop();
+    			},
+    			1500
+    		);
     	});
 
     	onDestroy(() => {
-    		clearInterval(gameLoopInterval);
     		resetTime();
     	});
 
@@ -1655,6 +1995,7 @@ var app = (function () {
 
     	function handleTime() {
     		if ($gameTime >= gameEndTime) {
+    			clearInterval(gameLoopInterval);
     			gameState.set("gameEnd");
     		}
     	}
@@ -1676,7 +2017,9 @@ var app = (function () {
     	$$self.$capture_state = () => ({
     		onMount,
     		onDestroy,
+    		fade,
     		ProgressBar,
+    		LiveScore,
     		Mole,
     		gameTimeUnit,
     		gameTickTime,
@@ -1711,32 +2054,43 @@ var app = (function () {
     class Game extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$3, create_fragment$3, safe_not_equal, {});
+    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
     			tagName: "Game",
     			options,
-    			id: create_fragment$3.name
+    			id: create_fragment$2.name
     		});
     	}
     }
 
     /* src/GameEnd.svelte generated by Svelte v3.38.2 */
-    const file$2 = "src/GameEnd.svelte";
+    const file$1 = "src/GameEnd.svelte";
 
-    function create_fragment$2(ctx) {
+    function create_fragment$1(ctx) {
     	let h1;
     	let t0;
     	let t1;
     	let t2;
-    	let button;
+    	let nav;
+    	let button0;
+    	let t3;
+    	let button1;
     	let current;
 
-    	button = new Button({
+    	button0 = new Button({
     			props: {
     				handleClick: /*playAgain*/ ctx[1],
     				text: "play again"
+    			},
+    			$$inline: true
+    		});
+
+    	button1 = new Button({
+    			props: {
+    				handleClick: /*returnToStart*/ ctx[2],
+    				text: "return to menu"
     			},
     			$$inline: true
     		});
@@ -1747,9 +2101,13 @@ var app = (function () {
     			t0 = text("game over, your score is ");
     			t1 = text(/*$gameScore*/ ctx[0]);
     			t2 = space();
-    			create_component(button.$$.fragment);
+    			nav = element("nav");
+    			create_component(button0.$$.fragment);
+    			t3 = space();
+    			create_component(button1.$$.fragment);
     			attr_dev(h1, "class", "svelte-1f8z4rw");
-    			add_location(h1, file$2, 17, 0, 203);
+    			add_location(h1, file$1, 23, 0, 301);
+    			add_location(nav, file$1, 24, 0, 350);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1759,7 +2117,10 @@ var app = (function () {
     			append_dev(h1, t0);
     			append_dev(h1, t1);
     			insert_dev(target, t2, anchor);
-    			mount_component(button, target, anchor);
+    			insert_dev(target, nav, anchor);
+    			mount_component(button0, nav, null);
+    			append_dev(nav, t3);
+    			mount_component(button1, nav, null);
     			current = true;
     		},
     		p: function update(ctx, [dirty]) {
@@ -1767,122 +2128,21 @@ var app = (function () {
     		},
     		i: function intro(local) {
     			if (current) return;
-    			transition_in(button.$$.fragment, local);
+    			transition_in(button0.$$.fragment, local);
+    			transition_in(button1.$$.fragment, local);
     			current = true;
     		},
     		o: function outro(local) {
-    			transition_out(button.$$.fragment, local);
+    			transition_out(button0.$$.fragment, local);
+    			transition_out(button1.$$.fragment, local);
     			current = false;
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(h1);
     			if (detaching) detach_dev(t2);
-    			destroy_component(button, detaching);
-    		}
-    	};
-
-    	dispatch_dev("SvelteRegisterBlock", {
-    		block,
-    		id: create_fragment$2.name,
-    		type: "component",
-    		source: "",
-    		ctx
-    	});
-
-    	return block;
-    }
-
-    function instance$2($$self, $$props, $$invalidate) {
-    	let $gameScore;
-    	validate_store(gameScore, "gameScore");
-    	component_subscribe($$self, gameScore, $$value => $$invalidate(0, $gameScore = $$value));
-    	let { $$slots: slots = {}, $$scope } = $$props;
-    	validate_slots("GameEnd", slots, []);
-
-    	function playAgain() {
-    		gameState.set("game");
-    	}
-
-    	const writable_props = [];
-
-    	Object.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<GameEnd> was created with unknown prop '${key}'`);
-    	});
-
-    	$$self.$capture_state = () => ({
-    		gameState,
-    		gameScore,
-    		Button,
-    		playAgain,
-    		$gameScore
-    	});
-
-    	return [$gameScore, playAgain];
-    }
-
-    class GameEnd extends SvelteComponentDev {
-    	constructor(options) {
-    		super(options);
-    		init(this, options, instance$2, create_fragment$2, safe_not_equal, {});
-
-    		dispatch_dev("SvelteRegisterComponent", {
-    			component: this,
-    			tagName: "GameEnd",
-    			options,
-    			id: create_fragment$2.name
-    		});
-    	}
-    }
-
-    /* src/Circle.svelte generated by Svelte v3.38.2 */
-
-    const file$1 = "src/Circle.svelte";
-
-    function create_fragment$1(ctx) {
-    	let span;
-
-    	const block = {
-    		c: function create() {
-    			span = element("span");
-    			set_style(span, "left", /*x*/ ctx[0] + "px");
-    			set_style(span, "top", /*y*/ ctx[1] + "px");
-    			set_style(span, "width", /*d*/ ctx[2] + "px");
-    			set_style(span, "height", /*d*/ ctx[2] + "px");
-    			set_style(span, "border-color", /*color*/ ctx[3]);
-    			attr_dev(span, "class", "svelte-5kp2sw");
-    			add_location(span, file$1, 15, 0, 209);
-    		},
-    		l: function claim(nodes) {
-    			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
-    		},
-    		m: function mount(target, anchor) {
-    			insert_dev(target, span, anchor);
-    		},
-    		p: function update(ctx, [dirty]) {
-    			if (dirty & /*x*/ 1) {
-    				set_style(span, "left", /*x*/ ctx[0] + "px");
-    			}
-
-    			if (dirty & /*y*/ 2) {
-    				set_style(span, "top", /*y*/ ctx[1] + "px");
-    			}
-
-    			if (dirty & /*d*/ 4) {
-    				set_style(span, "width", /*d*/ ctx[2] + "px");
-    			}
-
-    			if (dirty & /*d*/ 4) {
-    				set_style(span, "height", /*d*/ ctx[2] + "px");
-    			}
-
-    			if (dirty & /*color*/ 8) {
-    				set_style(span, "border-color", /*color*/ ctx[3]);
-    			}
-    		},
-    		i: noop,
-    		o: noop,
-    		d: function destroy(detaching) {
-    			if (detaching) detach_dev(span);
+    			if (detaching) detach_dev(nav);
+    			destroy_component(button0);
+    			destroy_component(button1);
     		}
     	};
 
@@ -1898,104 +2158,58 @@ var app = (function () {
     }
 
     function instance$1($$self, $$props, $$invalidate) {
+    	let $gameScore;
+    	validate_store(gameScore, "gameScore");
+    	component_subscribe($$self, gameScore, $$value => $$invalidate(0, $gameScore = $$value));
     	let { $$slots: slots = {}, $$scope } = $$props;
-    	validate_slots("Circle", slots, []);
-    	let { x } = $$props, { y } = $$props, { d } = $$props;
-    	let { color = "tomato" } = $$props;
-    	const writable_props = ["x", "y", "d", "color"];
+    	validate_slots("GameEnd", slots, []);
 
-    	Object.keys($$props).forEach(key => {
-    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<Circle> was created with unknown prop '${key}'`);
-    	});
-
-    	$$self.$$set = $$props => {
-    		if ("x" in $$props) $$invalidate(0, x = $$props.x);
-    		if ("y" in $$props) $$invalidate(1, y = $$props.y);
-    		if ("d" in $$props) $$invalidate(2, d = $$props.d);
-    		if ("color" in $$props) $$invalidate(3, color = $$props.color);
-    	};
-
-    	$$self.$capture_state = () => ({ x, y, d, color });
-
-    	$$self.$inject_state = $$props => {
-    		if ("x" in $$props) $$invalidate(0, x = $$props.x);
-    		if ("y" in $$props) $$invalidate(1, y = $$props.y);
-    		if ("d" in $$props) $$invalidate(2, d = $$props.d);
-    		if ("color" in $$props) $$invalidate(3, color = $$props.color);
-    	};
-
-    	if ($$props && "$$inject" in $$props) {
-    		$$self.$inject_state($$props.$$inject);
+    	function playAgain() {
+    		gameState.set("game");
+    		gameScore.set(0);
     	}
 
-    	return [x, y, d, color];
+    	function returnToStart() {
+    		gameState.set("gameStart");
+    		gameScore.set(0);
+    	}
+
+    	const writable_props = [];
+
+    	Object.keys($$props).forEach(key => {
+    		if (!~writable_props.indexOf(key) && key.slice(0, 2) !== "$$") console.warn(`<GameEnd> was created with unknown prop '${key}'`);
+    	});
+
+    	$$self.$capture_state = () => ({
+    		gameState,
+    		gameScore,
+    		Button,
+    		playAgain,
+    		returnToStart,
+    		$gameScore
+    	});
+
+    	return [$gameScore, playAgain, returnToStart];
     }
 
-    class Circle extends SvelteComponentDev {
+    class GameEnd extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { x: 0, y: 1, d: 2, color: 3 });
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, {});
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,
-    			tagName: "Circle",
+    			tagName: "GameEnd",
     			options,
     			id: create_fragment$1.name
     		});
-
-    		const { ctx } = this.$$;
-    		const props = options.props || {};
-
-    		if (/*x*/ ctx[0] === undefined && !("x" in props)) {
-    			console.warn("<Circle> was created without expected prop 'x'");
-    		}
-
-    		if (/*y*/ ctx[1] === undefined && !("y" in props)) {
-    			console.warn("<Circle> was created without expected prop 'y'");
-    		}
-
-    		if (/*d*/ ctx[2] === undefined && !("d" in props)) {
-    			console.warn("<Circle> was created without expected prop 'd'");
-    		}
-    	}
-
-    	get x() {
-    		throw new Error("<Circle>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set x(value) {
-    		throw new Error("<Circle>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get y() {
-    		throw new Error("<Circle>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set y(value) {
-    		throw new Error("<Circle>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get d() {
-    		throw new Error("<Circle>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set d(value) {
-    		throw new Error("<Circle>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	get color() {
-    		throw new Error("<Circle>: Props cannot be read directly from the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
-    	}
-
-    	set color(value) {
-    		throw new Error("<Circle>: Props cannot be set directly on the component instance unless compiling with 'accessors: true' or '<svelte:options accessors/>'");
     	}
     }
 
     /* src/App.svelte generated by Svelte v3.38.2 */
     const file = "src/App.svelte";
 
-    // (36:1) {:else}
+    // (35:1) {:else}
     function create_else_block(ctx) {
     	let gameend;
     	let current;
@@ -2027,14 +2241,14 @@ var app = (function () {
     		block,
     		id: create_else_block.name,
     		type: "else",
-    		source: "(36:1) {:else}",
+    		source: "(35:1) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (34:32) 
+    // (33:32) 
     function create_if_block_1(ctx) {
     	let game;
     	let current;
@@ -2066,14 +2280,14 @@ var app = (function () {
     		block,
     		id: create_if_block_1.name,
     		type: "if",
-    		source: "(34:32) ",
+    		source: "(33:32) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (32:2) {#if $gameState == "gameStart"}
+    // (31:2) {#if $gameState == "gameStart"}
     function create_if_block(ctx) {
     	let gamestart;
     	let current;
@@ -2105,7 +2319,7 @@ var app = (function () {
     		block,
     		id: create_if_block.name,
     		type: "if",
-    		source: "(32:2) {#if $gameState == \\\"gameStart\\\"}",
+    		source: "(31:2) {#if $gameState == \\\"gameStart\\\"}",
     		ctx
     	});
 
@@ -2138,8 +2352,9 @@ var app = (function () {
     			if_block.c();
     			set_style(section, "width", /*$width*/ ctx[0] + "px");
     			set_style(section, "height", /*$height*/ ctx[1] + "px");
-    			attr_dev(section, "class", "svelte-axqofr");
-    			add_location(section, file, 30, 0, 672);
+    			set_style(section, "--bgPath", "url(" + gameBackgroundImgPath + ")");
+    			attr_dev(section, "class", "svelte-lynf7d");
+    			add_location(section, file, 29, 0, 512);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -2240,8 +2455,7 @@ var app = (function () {
     		GameStart,
     		Game,
     		GameEnd,
-    		Mole,
-    		Circle,
+    		gameBackgroundImgPath,
     		width,
     		height,
     		gameState,

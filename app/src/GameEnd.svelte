@@ -3,7 +3,13 @@ import {gameState, gameScore} from "./store.js"
 import Button from "./Button.svelte"
 
 function playAgain() {
-	gameState.set("game")
+	gameState.set("game");
+	gameScore.set(0);
+}
+
+function returnToStart() {
+	gameState.set("gameStart");
+	gameScore.set(0);
 }
 
 </script>
@@ -16,4 +22,7 @@ function playAgain() {
 
 
 <h1> game over, your score is {$gameScore} </h1>
+<nav>
 <Button handleClick={playAgain} text="play again"/>
+<Button handleClick={returnToStart} text="return to menu"/>
+</nav>

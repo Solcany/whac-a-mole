@@ -1,12 +1,11 @@
 <script>
 	import {onMount, onDestroy} from 'svelte';
-	import {gameTickTime,
-			moleActiveImgPath,
-			moleInactiveImgPath,
-			moleActivationChance} from './settings.js';
+	import {imgPath,
+			gameTickTime,
+			moleInactiveImgPath} from './settings.js';
 	import {gameTime, gameScore} from './store.js';
 
-	export let x, y, diameter, value, color
+	export let x, y, diameter, value, activeImgSrc, activationChance
 	let isActive = false
 	$: $gameTime, handleTime();
 
@@ -16,7 +15,7 @@
 			// reset mole on tick
 			isActive = false;
 			// activate mole on chance
-			if(coinToss(moleActivationChance)) {
+			if(coinToss(activationChance)) {
 				isActive = true;
 			}
 		}
@@ -34,7 +33,7 @@
 	}
 
 	function coinToss(chance) {
-		return (Math.random() < chance ? true : false);
+		return (Math.random() < activationChance ? true : false);
 	}
 </script>
 
@@ -46,22 +45,32 @@
 		height: var(--size);
 		left: var(--x);
 		top: var(--y);
-		background-color: var(--color);
+		/*background-color: var(--color);*/
 		border-radius: 100%;
 		z-index: 1;
-		/*background-size: cover;*/
-		/*background-image: var(--inactivePath);*/
+		background-size: cover;
 	}
 
 	span.inactive {
-		background-color: var(--color);
-		/*background-image: var(--activePath);*/
+		/*background-color: var(--color);*/
+		background-image: var(--inactivePath);
 	}
 
 	span.active {
-		background-color: white;
-		/*background-image: var(--activePath);*/
+		/*background-color: white;*/
+		background-image: var(--activePath);
 	}
+
+/*	span.active:after {
+	  content: "";
+	  border-radius: 100%;
+  	  position: absolute;
+  	  top: 14%;
+  	  left: 14%;
+  	  width: 72%;
+  	  height: 72%;
+	  background: rgba(100,0,0,0.35);
+	}*/
 
 	span:active{
 		focus: none;
@@ -72,14 +81,13 @@
 	}
 </style>
 
-<span on:click={handleClick} 
+<span on:click={handleClick}
 	  class:inactive={!isActive}
 	  class:active={isActive}
 	  style="--size:{diameter}px; 
 	  		 --x:{x}px; 
 	  		 --y:{y}px;
-	  		 --color: {color};
-	  		 --activePath: url({moleActiveImgPath});
+	  		 --activePath: url({imgPath}mole_active_{activeImgSrc});
 	  		 --inactivePath: url({moleInactiveImgPath});">
 </span>
 

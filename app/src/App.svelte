@@ -1,34 +1,33 @@
 <script>
 	import GameStart from './GameStart.svelte';    
 	import Game from './Game.svelte'; 
-	import GameEnd from './GameEnd.svelte';        
-	import Mole from './Mole.svelte';
-	import Circle from './Circle.svelte';
+	import GameEnd from './GameEnd.svelte';
+	import { gameBackgroundImgPath } from './settings.js';        
 	import { width, 
 			 height, 
 			 gameState} from './store.js';
-
-	// const boundsRelative = {x1: 0.0, y1: 0.0, x2: 1.0,  y2: 1.0}
-	// const bounds = getAbsoluteBounds(boundsRelative, $width, $height)
-	// const circles = fitCircles(100, bounds, {diamLow: 200, diamHigh: 300});
 
 </script>
 
 <style>
 	section {
-		background-color: #595959;
+		background-size: cover;
+		background-color: #565556;
+		background-image: var(--bgPath);
 		position: relative;
 		overflow: hidden;
-		background-color: green;
 	}
-
 	:global(body) {
 		padding: 0;
 	}
+	:global(h1, h2) {
+		margin: 0;
+	}
+	
 </style>
 
 
-<section style="width: {$width}px; height: {$height}px;">
+<section style="width: {$width}px; height: {$height}px; --bgPath: url({gameBackgroundImgPath});">
  	{#if $gameState == "gameStart"}
 		<GameStart/>
 	{:else if $gameState == "game"}

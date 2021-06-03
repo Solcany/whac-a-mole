@@ -1,6 +1,7 @@
 <script>
 import { tweened } from 'svelte/motion';
-import {gameEndTime} from './settings.js';	
+import {gameEndTime,
+		pink, orange} from './settings.js';	
 import {width, gameTime} from './store.js';
 
 $: progress = Math.floor(100 / gameEndTime * $gameTime);
@@ -16,18 +17,18 @@ $: progressTweened.set(progress);
 		pointer-events: none;
 		bottom: 0 ;
 		width: 100%;
-		height: 10px;
+		height: 3px;
 	}
 
 	div.progressBar {
 		width: 0;
 		height: 100%;
-		background-color: navy;
+		background: linear-gradient(90deg, var(--pink), var(--orange));
 	}
 
 </style>
 
 <div class="progressContainer">
-	<div class="progressBar" style="width: {$progressTweened}%;">
+	<div class="progressBar" style="width: {$progressTweened}%; --pink: {pink}; --orange: {orange}">
 	</div>
 </div>

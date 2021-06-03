@@ -1,11 +1,13 @@
-import {fittingMinDiameter, 
+import {imgPath,
+		fittingMinDiameter, 
 		fittingPadding, 
 		fittingAttempts,
 		fittingDiameterRange,
 		levelBounds,
 		moleAmount,
-		moleColorRange,
-		moleValueRange} from "./settings.js"
+		moleValueRange,
+		moleActiveImgRange,
+		moleActivationChanceRange} from "./settings.js"
 
 function roundToTwo(num) {    
     return +(Math.round(num + "e+2")  + "e-2");
@@ -86,19 +88,23 @@ function fitCircles(circlesAmount, bounds, diameterRange) {
 function getMolesFromCircles(circles) {
 	circles.map((circle) => {
 		const diameter = circle.diameter;
-		const value = Math.round(rerange(diameter, 
-										 fittingMinDiameter, 
-										 fittingDiameterRange.high, 
-										 moleValueRange.high, 
-										 moleValueRange.low));
-
-		const color = matchItemWithinRange(diameter,
+		const value = matchItemWithinRange(diameter,
 										   fittingMinDiameter,
 										   fittingDiameterRange.high,
-										   moleColorRange)
+										   moleValueRange);
+		const activeImgSrc = matchItemWithinRange(diameter,
+										  		  fittingMinDiameter,
+										  		  fittingDiameterRange.high,
+										  		  moleActiveImgRange);
+		const activationChance = matchItemWithinRange(diameter,
+										   fittingMinDiameter,
+										   fittingDiameterRange.high,
+										   moleActivationChanceRange);		
 		let mole = circle;
 			mole.value = value;
-			mole.color = color;
+			mole.activeImgSrc = activeImgSrc;
+			mole.activationChance = activationChance;
+
 		return mole;
 	})
 }
