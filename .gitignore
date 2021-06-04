@@ -1,4 +1,6 @@
 node_modules/
+*.sublime-project
+*.sublime-workspace
 .DS_Store
 app_canvas/
 external_assets/

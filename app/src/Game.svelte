@@ -2,51 +2,53 @@
 import { onMount, onDestroy } from 'svelte';
 import { fade } from 'svelte/transition';
 
+import { transitionTime,
+	     gameTimeUnit, 
+		 gameTickTime, 
+		 gameEndTime,
+		 gameStartDelayTime } from './settings.js'
+import { generateMoles } from './moleGenerator.js';
+
+import { gameState, gameTime } from './store.js'
+
 import ProgressBar from './ProgressBar.svelte';
 import LiveScore from './LiveScore.svelte';
 import Mole from './Mole.svelte';
 
-import { gameTimeUnit, 
-		 gameTickTime, 
-		 gameEndTime,
-		 gameStartDelay } from './settings.js'
-import { generateMoles } from './moleGenerator.js';
-import { gameState, 
-		 gameTime } from './store.js'
+
 
 const moles = generateMoles(window.innerWidth, window.innerHeight);
 
-let gameLoopInterval
+let gameLoopInterval;
+
 onMount(() => {
 	setTimeout(()=> {
-		startGameLoop()		
-	}, gameStartDelay)
-})
+		startGameLoop();		
+	}, gameStartDelayTime);
+});
 onDestroy(() => {
 	resetTime();
-})
-
+});
 function startGameLoop() {
 	gameLoopInterval = setInterval(() =>  {
-					handleTime()
-					updateTime()
-				}, gameTimeUnit)
+					handleTime();
+					updateTime();
+				}, gameTimeUnit);
 }
 function handleTime() {
 	if($gameTime >= gameEndTime) {
-		clearInterval(gameLoopInterval);	
-		gameState.set("gameEnd")
+		clearInterval(gameLoopInterval);
+		setTimeout(()=> {
+			gameState.set("gameEnd");		
+		}, gameStartDelayTime);
 	}
 }
-
 function updateTime() {
-	gameTime.update(t => t + gameTimeUnit)
+	gameTime.update(t => t + gameTimeUnit);
 }
-
 function resetTime() {
-	gameTime.set(0)
+	gameTime.set(0);
 }
-
 </script>
 
 <style>
@@ -57,8 +59,7 @@ function resetTime() {
 	}
 </style>
 
-
-<div transition:fade="{{duration: 500}}">
+<div transition:fade="{{duration: transitionTime}}">
 	<LiveScore/>
 	{#each moles as mole}
 		<Mole {...mole}/>

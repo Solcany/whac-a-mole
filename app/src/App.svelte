@@ -1,25 +1,17 @@
 <script>
+	import { gameBackgroundImgPath, gray } from './settings.js';
+	
+	import { gameState } from './store.js';
+
 	import GameStart from './GameStart.svelte';    
 	import Game from './Game.svelte'; 
 	import GameEnd from './GameEnd.svelte';
-	import { gameBackgroundImgPath } from './settings.js';
-
-	import { gameState } from './store.js';
-
 </script>
 
 <style>
-    @font-face {
-        font-family: 'gt_super';
-        font-style: normal;
-        font-weight: 400;
-        /*src: local("../public/assets/fonts/gt.woff");*/
-        src: url("./gt.woff") format("woff");
-    }
-
 	section {
 		background-size: cover;
-		background-color: #565556;
+		background-color: var(--bgColor);
 		background-image: var(--bgPath);
 		position: relative;
 		overflow: hidden;
@@ -28,17 +20,13 @@
 		height: 100vh;
 		min-width: 768px;
 	}
-
 	:global(body, h1, h2, img) {
 		padding: 0;
 		margin: 0;
 	}
-
-
 </style>
 
-
-<section style="--bgPath: url({gameBackgroundImgPath});">
+<section style="--bgPath: url({gameBackgroundImgPath}); --bgColor:{gray};">
  	{#if $gameState == "gameStart"}
 		<GameStart/>
 	{:else if $gameState == "game"}
@@ -47,3 +35,9 @@
 		<GameEnd/>
 	{/if}
 </section>
+
+<svelte:head>
+	<style>
+	@import url('https://fonts.googleapis.com/css2?family=Lora:wght@700&display=swap');
+	</style>
+</svelte:head>

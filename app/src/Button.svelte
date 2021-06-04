@@ -1,5 +1,5 @@
 <script>
-	import {h2Size} from "./settings.js"
+	import {fontName} from "./settings.js";	
 	export let handleClick, text, imgSrc;
 </script>
 
@@ -21,12 +21,14 @@
 		display: block;
 		color: white;
 		text-align: center;
-		font-size: var(--fontSize);
-		font-family: gt_super;
-	}
+		font-size: 30px;
+		font-family: var(--fontName), serif;    	
+        font-style: bold;
+        font-weight: 700;
+    }
 </style>
 
 <button on:click={handleClick}>
 	<img src="{imgSrc}">
-	<span style="--fontSize:{h2Size}"> {text}</span>
+	<span style="--fontName: {fontName};"> {text}</span>
 </button>

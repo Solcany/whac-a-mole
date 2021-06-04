@@ -5,10 +5,13 @@
 	import {imgPath,
 			gameTickTime,
 			moleInactiveImgPath} from './settings.js';
+
 	import {gameTime, gameScore} from './store.js';
 
 	export let x, y, diameter, value, activeImgSrc, activationChance
+
 	let isActive = false
+
 	$: $gameTime, handleTime();
 
 	function handleTime() {
@@ -20,19 +23,16 @@
 			}
 		}
 	}
-
 	function handleClick() {
 		if(isActive) {
 			isActive = false;
 			updateScore();
 		}
 	}
-
 	function updateScore() {
 		let v = parseInt(value);
 		$gameScore = [...$gameScore, v];	
 	}
-
 	function coinToss(chance) {
 		return (Math.random() < activationChance ? true : false);
 	}
@@ -50,19 +50,15 @@
 		z-index: 1;
 		background-size: cover;
 	}
-
 	span.inactive {
 		background-image: var(--inactivePath);
 	}
-
 	span.active {
 		background-image: var(--activePath);
 	}
-
-	span:active{
+	span.active:focus{
 		focus: none;
-	}
-
+	}	
 	span.active:hover {
 		cursor: pointer;
 	}
@@ -74,7 +70,7 @@
 	  style="--size:{diameter}px; 
 	  		 --x:{x}px; 
 	  		 --y:{y}px;
-	  		 --activePath: url({imgPath}mole_active_{activeImgSrc});
+	  		 --activePath: url({activeImgSrc});
 	  		 --inactivePath: url({moleInactiveImgPath});">
 </span>
 
