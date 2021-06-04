@@ -1,5 +1,7 @@
 <script>
 	import {onMount, onDestroy} from 'svelte';
+	import {get} from 'svelte/store';
+
 	import {imgPath,
 			gameTickTime,
 			moleInactiveImgPath} from './settings.js';
@@ -12,14 +14,13 @@
 	function handleTime() {
 		let isTick = ($gameTime % gameTickTime == 0) ? true : false;
 		if(isTick) {
-			// reset mole on tick
 			isActive = false;
-			// activate mole on chance
 			if(coinToss(activationChance)) {
 				isActive = true;
 			}
 		}
 	}
+
 	function handleClick() {
 		if(isActive) {
 			isActive = false;
@@ -29,7 +30,7 @@
 
 	function updateScore() {
 		let v = parseInt(value);
-		gameScore.update(score => score + v);
+		$gameScore = [...$gameScore, v];	
 	}
 
 	function coinToss(chance) {
@@ -45,32 +46,18 @@
 		height: var(--size);
 		left: var(--x);
 		top: var(--y);
-		/*background-color: var(--color);*/
 		border-radius: 100%;
 		z-index: 1;
 		background-size: cover;
 	}
 
 	span.inactive {
-		/*background-color: var(--color);*/
 		background-image: var(--inactivePath);
 	}
 
 	span.active {
-		/*background-color: white;*/
 		background-image: var(--activePath);
 	}
-
-/*	span.active:after {
-	  content: "";
-	  border-radius: 100%;
-  	  position: absolute;
-  	  top: 14%;
-  	  left: 14%;
-  	  width: 72%;
-  	  height: 72%;
-	  background: rgba(100,0,0,0.35);
-	}*/
 
 	span:active{
 		focus: none;

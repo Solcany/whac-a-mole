@@ -1,8 +1,7 @@
 <script>
 import { tweened } from 'svelte/motion';
-import {gameEndTime,
-		pink, orange} from './settings.js';	
-import {width, gameTime} from './store.js';
+import {gameEndTime, pink, orange} from './settings.js';	
+import {gameTime} from './store.js';
 
 $: progress = Math.floor(100 / gameEndTime * $gameTime);
 const progressTweened = tweened(0);

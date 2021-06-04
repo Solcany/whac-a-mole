@@ -1,11 +1,7 @@
 <script>
-// import {pink, orange} from './settings.js';	
 import {gameScore} from './store.js';
 
-//$: gameScore, handleScoreChange();
-
-// const progressTweened = tweened(0);
-// $: progressTweened.set(progress);
+$: liveScore = $gameScore.reduce((v, acc) => v + acc);
 
 </script>
 
@@ -27,5 +23,5 @@ import {gameScore} from './store.js';
 </style>
 
 <div class="scoreContainer">
-	<h2 class="liveScore">{$gameScore}</h2>
+	<h2 class="liveScore">{liveScore}</h2>
 </div>

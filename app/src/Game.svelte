@@ -6,20 +6,21 @@ import ProgressBar from './ProgressBar.svelte';
 import LiveScore from './LiveScore.svelte';
 import Mole from './Mole.svelte';
 
-import { gameTimeUnit, gameTickTime, gameEndTime } from './settings.js'
+import { gameTimeUnit, 
+		 gameTickTime, 
+		 gameEndTime,
+		 gameStartDelay } from './settings.js'
 import { generateMoles } from './moleGenerator.js';
 import { gameState, 
-		 gameTime, 
-		 width, 
-		 height } from './store.js'
+		 gameTime } from './store.js'
 
-const moles = generateMoles($width, $height);
+const moles = generateMoles(window.innerWidth, window.innerHeight);
 
 let gameLoopInterval
 onMount(() => {
 	setTimeout(()=> {
 		startGameLoop()		
-	}, 1500)
+	}, gameStartDelay)
 })
 onDestroy(() => {
 	resetTime();
@@ -49,11 +50,11 @@ function resetTime() {
 </script>
 
 <style>
- div {
- 	width: 100%;
- 	height: 100%;
- 	position: relative;
- }
+	div {
+		width: 100%;
+		height: 100%;
+		position: relative;
+	}
 </style>
 
 

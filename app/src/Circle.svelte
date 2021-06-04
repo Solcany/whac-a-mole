@@ -9,7 +9,6 @@
 		border-radius: 500px;
 		border: solid 1px tomato;
 		transform: translate(-50%, -50%);
-
 	}
 </style>
 

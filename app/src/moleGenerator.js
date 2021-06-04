@@ -5,6 +5,7 @@ import {imgPath,
 		fittingDiameterRange,
 		levelBounds,
 		moleAmount,
+		moleTypes,
 		moleValueRange,
 		moleActiveImgRange,
 		moleActivationChanceRange} from "./settings.js"
@@ -21,7 +22,7 @@ function rerange (value, inLow, inHigh, outLow, outHigh) {
     return (value - inLow) * (outHigh - outLow) / (inHigh - inLow) + outLow;
 }
 
-export function matchItemWithinRange(value, inLow, inHigh, items) {
+function matchItemWithinRange(value, inLow, inHigh, items) {
 	const step = (inHigh - inLow) / items.length
 	for(let i = 0; i < items.length; i++) {
 		let limitLow = step * i + inLow
@@ -88,23 +89,14 @@ function fitCircles(circlesAmount, bounds, diameterRange) {
 function getMolesFromCircles(circles) {
 	circles.map((circle) => {
 		const diameter = circle.diameter;
-		const value = matchItemWithinRange(diameter,
-										   fittingMinDiameter,
-										   fittingDiameterRange.high,
-										   moleValueRange);
-		const activeImgSrc = matchItemWithinRange(diameter,
-										  		  fittingMinDiameter,
-										  		  fittingDiameterRange.high,
-										  		  moleActiveImgRange);
-		const activationChance = matchItemWithinRange(diameter,
-										   fittingMinDiameter,
-										   fittingDiameterRange.high,
-										   moleActivationChanceRange);		
+		const moleParams = matchItemWithinRange(diameter,
+										   		fittingMinDiameter,
+										   		fittingDiameterRange.high,
+										   		moleTypes);	
 		let mole = circle;
-			mole.value = value;
-			mole.activeImgSrc = activeImgSrc;
-			mole.activationChance = activationChance;
-
+			mole.value = moleParams.value;
+			mole.activeImgSrc = moleParams.imgSrc;
+			mole.activationChance = moleParams.activationChance;
 		return mole;
 	})
 }
