@@ -1,5 +1,6 @@
 // resources
 export const imgPath = "../assets/image/"
+export const audioPath = "../assets/sound/v2/"
 
 // game 
 export const gameTickTime = 1250;
@@ -18,18 +19,34 @@ export const levelBounds = {x1: 0.1, y1: 0.2, x2: 0.9, y2: 0.8}
 // mole
 export const moleAmount = 70;
 export const moleInactiveImgPath = imgPath + "mole_inactive.png";
-export const moleTypes = [{value: 100,
-						   activationChance: 0.03,
-						   imgSrc: imgPath + "mole_active_4.png"},
-						  {value: 40,
-						   activationChance: 0.23,
-						   imgSrc: imgPath + "mole_active_3.png"},
-						  {value: 20,
-						   activationChance: 0.28,
-						   imgSrc: imgPath + "mole_active_2.png"},
-						  {value: 10,
-						   activationChance: 0.45,
-						   imgSrc: imgPath + "mole_active_1.png"}]	
+export const moleTypes = [
+	{
+		value: 100,
+		activationChance: 0.03,
+		imgSrc: imgPath + "mole_active_4.png",
+		audioSrc: audioPath + "01.mp3" 
+	},
+	{
+		value: 40,
+		activationChance: 0.23,
+		imgSrc: imgPath + "mole_active_3.png",
+		audioSrc: audioPath + "02.mp3" 
+
+	},
+	{
+		value: 20,
+		activationChance: 0.28,
+		imgSrc: imgPath + "mole_active_2.png",
+		audioSrc: audioPath + "03.mp3" 
+
+	},
+	{
+		value: 10,
+		activationChance: 0.45,
+		imgSrc: imgPath + "mole_active_1.png",
+		audioSrc: audioPath + "04.mp3" 		
+	}
+]	
 						   					   						   
 // ui
 export const orange = "#D0B17E";

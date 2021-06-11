@@ -84,6 +84,8 @@ function createMolesFromCircles(circles) {
 			mole.value = moleParams.value;
 			mole.activeImgSrc = moleParams.imgSrc;
 			mole.activationChance = moleParams.activationChance;
+			mole.audioSrc = moleParams.audioSrc;
+
 		return mole;
 	})
 }

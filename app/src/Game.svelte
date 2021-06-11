@@ -3,6 +3,7 @@ import { onMount, onDestroy } from 'svelte';
 import { fade } from 'svelte/transition';
 
 import { transitionTime,
+		 moleTypes,
 	     gameTimeUnit, 
 		 gameTickTime, 
 		 gameEndTime,
@@ -14,7 +15,13 @@ import { gameState, gameTime } from './store.js'
 import ProgressBar from './ProgressBar.svelte';
 import LiveScore from './LiveScore.svelte';
 import Mole from './Mole.svelte';
+import AudioPlayer from './AudioPlayer.svelte';
 
+// Object.defineProperty(HTMLMediaElement.prototype, 'playing', {
+//     get: function(){
+//         return !!(this.currentTime > 0 && !this.paused && !this.ended && this.readyState > 2);
+//     }
+// })
 
 
 const moles = generateMoles(window.innerWidth, window.innerHeight);
@@ -31,9 +38,9 @@ onDestroy(() => {
 });
 function startGameLoop() {
 	gameLoopInterval = setInterval(() =>  {
-					handleTime();
-					updateTime();
-				}, gameTimeUnit);
+		handleTime();
+		updateTime();
+	}, gameTimeUnit);
 }
 function handleTime() {
 	if($gameTime >= gameEndTime) {
@@ -64,7 +71,11 @@ function resetTime() {
 	{#each moles as mole}
 		<Mole {...mole}/>
 	{/each}
+	{#each moleTypes as moleType}
+		<AudioPlayer src={moleType.audioSrc}/>
+	{/each}
 	<ProgressBar/>
+	}
 </div>
 
 

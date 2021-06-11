@@ -21,18 +21,18 @@ function getTotalScore() {
 
 function getMolesScores() {
 	return moleTypes.map((moleType) => {
-							const value = moleType.value;
-							let occurences = $gameScore.filter((v) => v == value);
-							let sum, amount;
-							if(occurences === undefined || occurences.length == 0) {
-								sum = 0;
-								amount = 0;
-							} else {
-								sum = occurences.reduce((v, acc) => v + acc);
-								amount = occurences.length;								
-							}
-							const moleStats = {type: moleType, score: sum, amount: amount}
-							return moleStats});
+		const value = moleType.value;
+		const occurences = $gameScore.filter((v) => v == value);
+		let sum, amount;
+		if(occurences === undefined || occurences.length == 0) {
+			sum = 0;
+			amount = 0;
+		} else {
+			sum = occurences.reduce((v, acc) => v + acc);
+			amount = occurences.length;								
+		}
+		const moleStats = {type: moleType, score: sum, amount: amount}
+		return moleStats});
 }
 
 </script>
@@ -90,7 +90,7 @@ span.moleScore img {
 		<H2 text="Your total score is {totalScore}!"/>
 	</div>
 	<nav>
-		<Button handleClick={playAgain} text="Play again" imgSrc="../assets/image/mole_active_4.png"/>
+		<Button handleClick={playAgain} text="Play again" imgSrc="./assets/image/mole_active_4.png"/>
 	</nav>
 	<Footer/>
 </div>

@@ -6,9 +6,11 @@
 			gameTickTime,
 			moleInactiveImgPath} from './settings.js';
 
-	import {gameTime, gameScore} from './store.js';
+	import {gameTime, 
+			gameScore, 
+			currentAudioTrack} from './store.js';
 
-	export let x, y, diameter, value, activeImgSrc, activationChance
+	export let x, y, diameter, value, activeImgSrc, activationChance, audioSrc
 
 	let isActive = false
 
@@ -23,10 +25,17 @@
 			}
 		}
 	}
+
+	function setAudioTrack() {
+		let l = Math.random();
+		currentAudioTrack.set({v:  l, src: audioSrc});
+	}
+
 	function handleClick() {
 		if(isActive) {
 			isActive = false;
 			updateScore();
+			setAudioTrack();
 		}
 	}
 	function updateScore() {

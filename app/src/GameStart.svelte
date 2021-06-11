@@ -29,7 +29,7 @@ function startGame() {
 <div class="main">
 	<H1 text="Whac' A Mole"/>
 	<nav>
-		<Button handleClick={startGame} text="Start" imgSrc="../assets/image/mole_active_4.png"/>
+		<Button handleClick={startGame} text="Start" imgSrc="./assets/image/mole_active_4.png"/>
 	</nav>
 	<Footer/>
 </div>
