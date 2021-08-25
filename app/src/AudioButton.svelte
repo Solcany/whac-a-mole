@@ -1,6 +1,15 @@
 <script>
 	import {fontName} from "./settings.js";	
-	export let handleClick, text, imgSrc;
+	export let clickAction, text, imgSrc, audioSrc;
+	import {currentAudioTrack} from './store.js';
+	import {onMount} from "svelte"
+
+	let player;
+
+	function handleClick() {
+		player.play();
+		clickAction();
+	}
 </script>
 
 <style>
@@ -31,4 +40,5 @@
 <button on:click={handleClick}>
 	<img src="{imgSrc}">
 	<span style="--fontName: {fontName};"> {text}</span>
+	<audio bind:this={player} src={audioSrc} volume="0.5"/>
 </button>

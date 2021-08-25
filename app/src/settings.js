@@ -1,6 +1,6 @@
 // resources
 export const imgPath = "../assets/image/"
-export const audioPath = "../assets/sound/v2/"
+export const audioPath = "../assets/sound/"
 
 // game 
 export const gameTickTime = 1250;
@@ -53,4 +53,11 @@ export const orange = "#D0B17E";
 export const pink = "#DF84A7";
 export const gray = "#565556";
 export const transitionTime = 500;
-export const fontName = 'Lora';						   
+export const fontName = 'Lora';	
+
+// audio
+
+export const audioFadeTick = 0.08
+export const audioResetThresh = 0.1
+
+

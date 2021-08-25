@@ -33,15 +33,18 @@ onMount(() => {
 		startGameLoop();		
 	}, gameStartDelayTime);
 });
+
 onDestroy(() => {
 	resetTime();
 });
+
 function startGameLoop() {
 	gameLoopInterval = setInterval(() =>  {
 		handleTime();
 		updateTime();
 	}, gameTimeUnit);
 }
+
 function handleTime() {
 	if($gameTime >= gameEndTime) {
 		clearInterval(gameLoopInterval);
@@ -50,9 +53,11 @@ function handleTime() {
 		}, gameStartDelayTime);
 	}
 }
+
 function updateTime() {
 	gameTime.update(t => t + gameTimeUnit);
 }
+
 function resetTime() {
 	gameTime.set(0);
 }

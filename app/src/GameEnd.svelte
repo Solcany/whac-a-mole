@@ -2,7 +2,7 @@
 import {gameState, gameScore} from "./store.js";
 import {moleTypes, fontName} from "./settings.js";
 
-import Button from "./Button.svelte";
+import AudioButton from "./AudioButton.svelte";
 import H1 from "./H1.svelte";
 import H2 from "./H2.svelte";
 import Footer from "./Footer.svelte";
@@ -90,7 +90,7 @@ span.moleScore img {
 		<H2 text="Your total score is {totalScore}!"/>
 	</div>
 	<nav>
-		<Button handleClick={playAgain} text="Play again" imgSrc="./assets/image/mole_active_4.png"/>
+		<AudioButton clickAction={playAgain} text="Play again" imgSrc="./assets/image/mole_active_4.png" audioSrc="../assets/sound/01.mp3"/>
 	</nav>
 	<Footer/>
 </div>

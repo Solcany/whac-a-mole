@@ -38,10 +38,12 @@
 			setAudioTrack();
 		}
 	}
+
 	function updateScore() {
 		let v = parseInt(value);
 		$gameScore = [...$gameScore, v];	
 	}
+	
 	function coinToss(chance) {
 		return (Math.random() < activationChance ? true : false);
 	}
