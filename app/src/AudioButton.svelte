@@ -2,14 +2,29 @@
 	import {fontName} from "./settings.js";	
 	export let clickAction, text, imgSrc, audioSrc;
 	import {currentAudioTrack} from './store.js';
+
+	import {gameTimeUnit,
+		    audioButtonFadeTick,
+			audioResetThresh} from './settings.js';		
 	import {onMount} from "svelte"
 
 	let player;
 
 	function handleClick() {
 		player.play();
-		clickAction();
+
+	    var delayClick = setInterval(function () {
+	        if (player.volume > audioResetThresh) {
+	            player.volume -= audioButtonFadeTick;
+	        }
+	        if (player.volume < audioResetThresh) {
+				player.pause();
+	            clearInterval(delayClick);
+	            clickAction();
+	        }
+	    }, gameTimeUnit);
 	}
+		
 </script>
 
 <style>
@@ -40,5 +55,5 @@
 <button on:click={handleClick}>
 	<img src="{imgSrc}">
 	<span style="--fontName: {fontName};"> {text}</span>
-	<audio bind:this={player} src={audioSrc} volume="0.5"/>
+	<audio bind:this={player} src={audioSrc}/>
 </button>

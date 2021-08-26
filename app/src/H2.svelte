@@ -5,7 +5,7 @@
 
 <style>
 	h2 {
-	 	font-size: 30px;
+	 	font-size: 25px;
 		font-family: var(--fontName), serif;    	
         font-style: bold;
         font-weight: 700;				

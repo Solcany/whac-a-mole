@@ -1,7 +1,10 @@
 <script>
 import { gameState } from './store.js'
-
 import { moleTypes } from './settings.js';
+
+import { fade } from 'svelte/transition';
+import { transitionTime } from './settings.js'
+
 
 import AudioButton from './AudioButton.svelte'	
 import H1 from './H1.svelte'	
@@ -10,9 +13,7 @@ import Footer from './Footer.svelte'
 
 
 function startGame() {
-	setTimeout(function() {
-		gameState.set("game")
-	}, 1250);
+	gameState.set("game")
 }
 
 </script>
@@ -31,7 +32,7 @@ function startGame() {
 	}
 </style>
 
-<div class="main">
+<div transition:fade="{{duration: transitionTime}}" class="main">
 	<H1 text="Whac' A Mole"/>
 	<nav>
 		<AudioButton clickAction={startGame} text="Start" imgSrc="./assets/image/mole_active_4.png" audioSrc="../assets/sound/01.mp3"/>

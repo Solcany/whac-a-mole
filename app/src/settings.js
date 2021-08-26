@@ -2,11 +2,24 @@
 export const imgPath = "../assets/image/"
 export const audioPath = "../assets/sound/"
 
+// ui
+export const orange = "#D0B17E";
+export const pink = "#DF84A7";
+export const gray = "#565556";
+export const transitionTime = 500;
+export const fontName = 'Lora';	
+
+// audio
+export const audioPlayerFadeTick = 0.2
+export const audioButtonFadeTick = 0.03
+export const audioResetThresh = 0.1
+
+
 // game 
-export const gameTickTime = 1250;
-export const gameTimeUnit = 50;
-export const gameEndTime = 20000;
-export const gameStartDelayTime = 500;
+export const gameTickTime = 1000;
+export const gameTimeUnit = 25;
+export const gameEndTime = 5000;
+export const gameStartDelayTime = 350;
 export const gameBackgroundImgPath = imgPath + "background.jpg";
 
 // level
@@ -47,17 +60,6 @@ export const moleTypes = [
 		audioSrc: audioPath + "04.mp3" 		
 	}
 ]	
-						   					   						   
-// ui
-export const orange = "#D0B17E";
-export const pink = "#DF84A7";
-export const gray = "#565556";
-export const transitionTime = 500;
-export const fontName = 'Lora';	
 
-// audio
-
-export const audioFadeTick = 0.08
-export const audioResetThresh = 0.1
 
 

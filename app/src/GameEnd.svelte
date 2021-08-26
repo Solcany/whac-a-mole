@@ -49,12 +49,16 @@ div.main {
  	justify-content: space-between;
 }
 
+div.score_container {
+	padding-top:60px;
+}
+
 span.moleScore {
 	font-family: var(--fontName), serif;    	
     font-style: bold;
     font-weight: 700;	
  	color: white;
- 	font-size: 30px;		
+ 	font-size: 25px;		
  	display: flex;
  	align-items: center;
 }
@@ -63,16 +67,15 @@ span.moleScore:last-child {
 	border-bottom: 1px solid white;
 }
 span.moleScore img {
- 	width: 75px;
- 	height: 75px;
+ 	width: 60px;
+ 	height: 60px;
  	display: inline-block;
 }
 
 </style>
 
 <div class="main">
-	<H1 text="Whac' A Mole"/>
-	<div>
+	<div class="score_container">
 		<div>
 		{#each molesScores as moleScore}
 		<span class="moleScore" style="--fontName: {fontName};">
