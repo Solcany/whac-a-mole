@@ -60,6 +60,7 @@
 		border-radius: 100%;
 		z-index: 1;
 		background-size: cover;
+		transition: all 0.1s;
 	}
 	span.inactive {
 		background-image: var(--inactivePath);
@@ -72,6 +73,8 @@
 	}	
 	span.active:hover {
 		cursor: pointer;
+		transform: translate(-50%, -50%) scale(0.95, 0.95);
+
 	}
 </style>
 

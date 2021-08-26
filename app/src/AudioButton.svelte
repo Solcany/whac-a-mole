@@ -40,7 +40,14 @@
 		width: 200px;
 		height: 200px;
 		display: block;		
+		transition: all 0.1s;
+
 	}
+
+	button img:hover {
+		transform: scale(0.95, 0.95);
+	}
+
 	button span {
 		display: block;
 		color: white;
@@ -50,6 +57,7 @@
         font-style: bold;
         font-weight: 700;
     }
+
 </style>
 
 <button on:click={handleClick}>

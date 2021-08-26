@@ -1,5 +1,5 @@
 <script>
-	import { gameBackgroundImgPath, gray } from './settings.js';
+	import { title, gameBackgroundImgPath, gray } from './settings.js';
 	
 	import { gameState } from './store.js';
 
@@ -37,6 +37,9 @@
 </section>
 
 <svelte:head>
+	<title>{title}</title>
+	<html lang="en" />
+
 	<style>
 	@import url('https://fonts.googleapis.com/css2?family=Lora:wght@700&display=swap');
 	</style>

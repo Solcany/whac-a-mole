@@ -682,6 +682,8 @@ var app = (function () {
         $inject_state() { }
     }
 
+    const title = "Gem Player";
+
     // resources
     const imgPath = "../assets/image/";
     const audioPath = "../assets/sound/";
@@ -700,17 +702,17 @@ var app = (function () {
 
 
     // game 
-    const gameTickTime = 1000;
+    const gameTickTime = 1250;
     const gameTimeUnit = 25;
-    const gameEndTime = 5000;
-    const gameStartDelayTime = 350;
+    const gameEndTime = 20000;
+    const gameStartDelayTime = 300;
     const gameBackgroundImgPath = imgPath + "background.jpg";
 
     // level
     const fittingMinDiameter = 50;
-    const fittingPadding = 15;
+    const fittingPadding = 10;
     const fittingAttempts = 800;
-    const fittingDiameterRange = {low: 200, high: 400};
+    const fittingDiameterRange = {low: 150, high: 300};
     const levelBounds = {x1: 0.1, y1: 0.2, x2: 0.9, y2: 0.8};
 
     // mole
@@ -838,15 +840,15 @@ var app = (function () {
     			t2 = space();
     			audio = element("audio");
     			if (img.src !== (img_src_value = /*imgSrc*/ ctx[1])) attr_dev(img, "src", img_src_value);
-    			attr_dev(img, "class", "svelte-6uc0b0");
-    			add_location(img, file$b, 55, 1, 1098);
+    			attr_dev(img, "class", "svelte-1xagq2k");
+    			add_location(img, file$b, 63, 1, 1181);
     			set_style(span, "--fontName", fontName);
-    			attr_dev(span, "class", "svelte-6uc0b0");
-    			add_location(span, file$b, 56, 1, 1120);
+    			attr_dev(span, "class", "svelte-1xagq2k");
+    			add_location(span, file$b, 64, 1, 1203);
     			if (audio.src !== (audio_src_value = /*audioSrc*/ ctx[2])) attr_dev(audio, "src", audio_src_value);
-    			add_location(audio, file$b, 57, 1, 1174);
-    			attr_dev(button, "class", "svelte-6uc0b0");
-    			add_location(button, file$b, 54, 0, 1065);
+    			add_location(audio, file$b, 65, 1, 1257);
+    			attr_dev(button, "class", "svelte-1xagq2k");
+    			add_location(button, file$b, 62, 0, 1148);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1235,11 +1237,7 @@ var app = (function () {
     	let footer;
     	let div_transition;
     	let current;
-
-    	h1 = new H1({
-    			props: { text: "Whac' A Mole" },
-    			$$inline: true
-    		});
+    	h1 = new H1({ props: { text: title }, $$inline: true });
 
     	audiobutton = new AudioButton({
     			props: {
@@ -1265,7 +1263,7 @@ var app = (function () {
     			attr_dev(nav, "class", "svelte-1ujymu2");
     			add_location(nav, file$8, 36, 1, 660);
     			attr_dev(div, "class", "main svelte-1ujymu2");
-    			add_location(div, file$8, 34, 0, 566);
+    			add_location(div, file$8, 34, 0, 573);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -1340,6 +1338,7 @@ var app = (function () {
 
     	$$self.$capture_state = () => ({
     		gameState,
+    		title,
     		moleTypes,
     		fade,
     		transitionTime,
@@ -1896,10 +1895,10 @@ var app = (function () {
     			set_style(span, "--y", /*y*/ ctx[1] + "px");
     			set_style(span, "--activePath", "url(" + /*activeImgSrc*/ ctx[3] + ")");
     			set_style(span, "--inactivePath", "url(" + moleInactiveImgPath + ")");
-    			attr_dev(span, "class", "svelte-13iiere");
+    			attr_dev(span, "class", "svelte-1ovmywu");
     			toggle_class(span, "inactive", !/*isActive*/ ctx[4]);
     			toggle_class(span, "active", /*isActive*/ ctx[4]);
-    			add_location(span, file$4, 77, 0, 1415);
+    			add_location(span, file$4, 80, 0, 1494);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -2789,7 +2788,7 @@ var app = (function () {
     	return child_ctx;
     }
 
-    // (86:4) {:else}
+    // (85:4) {:else}
     function create_else_block$1(ctx) {
     	let t0_value = /*moleScore*/ ctx[6].amount + "";
     	let t0;
@@ -2824,14 +2823,14 @@ var app = (function () {
     		block,
     		id: create_else_block$1.name,
     		type: "else",
-    		source: "(86:4) {:else}",
+    		source: "(85:4) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (84:4) {#if moleScore.amount == 1}
+    // (83:4) {#if moleScore.amount == 1}
     function create_if_block$1(ctx) {
     	let t0_value = /*moleScore*/ ctx[6].amount + "";
     	let t0;
@@ -2866,14 +2865,14 @@ var app = (function () {
     		block,
     		id: create_if_block$1.name,
     		type: "if",
-    		source: "(84:4) {#if moleScore.amount == 1}",
+    		source: "(83:4) {#if moleScore.amount == 1}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (80:2) {#each molesScores as moleScore}
+    // (79:2) {#each molesScores as moleScore}
     function create_each_block(ctx) {
     	let span1;
     	let img;
@@ -2899,12 +2898,12 @@ var app = (function () {
     			if_block.c();
     			t1 = space();
     			if (img.src !== (img_src_value = /*moleScore*/ ctx[6].type.imgSrc)) attr_dev(img, "src", img_src_value);
-    			attr_dev(img, "class", "svelte-6ejsuz");
-    			add_location(img, file$1, 81, 3, 1681);
-    			add_location(span0, file$1, 82, 3, 1720);
-    			attr_dev(span1, "class", "moleScore svelte-6ejsuz");
+    			attr_dev(img, "class", "svelte-escpzo");
+    			add_location(img, file$1, 80, 3, 1647);
+    			add_location(span0, file$1, 81, 3, 1686);
+    			attr_dev(span1, "class", "moleScore svelte-escpzo");
     			set_style(span1, "--fontName", fontName);
-    			add_location(span1, file$1, 80, 2, 1621);
+    			add_location(span1, file$1, 79, 2, 1587);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span1, anchor);
@@ -2927,7 +2926,7 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(80:2) {#each molesScores as moleScore}",
+    		source: "(79:2) {#each molesScores as moleScore}",
     		ctx
     	});
 
@@ -2990,12 +2989,12 @@ var app = (function () {
     			create_component(audiobutton.$$.fragment);
     			t2 = space();
     			create_component(footer.$$.fragment);
-    			add_location(div0, file$1, 78, 2, 1578);
-    			attr_dev(div1, "class", "score_container svelte-6ejsuz");
-    			add_location(div1, file$1, 77, 1, 1546);
-    			add_location(nav, file$1, 94, 1, 1997);
-    			attr_dev(div2, "class", "main svelte-6ejsuz");
-    			add_location(div2, file$1, 76, 0, 1526);
+    			add_location(div0, file$1, 77, 2, 1544);
+    			attr_dev(div1, "class", "score_container svelte-escpzo");
+    			add_location(div1, file$1, 76, 1, 1512);
+    			add_location(nav, file$1, 93, 1, 1963);
+    			attr_dev(div2, "class", "main svelte-escpzo");
+    			add_location(div2, file$1, 75, 0, 1492);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -3278,6 +3277,8 @@ var app = (function () {
     	let current_block_type_index;
     	let if_block;
     	let t0;
+    	let title_value;
+    	let html;
     	let style;
     	let current;
     	const if_block_creators = [create_if_block, create_if_block_1, create_else_block];
@@ -3291,19 +3292,23 @@ var app = (function () {
 
     	current_block_type_index = select_block_type(ctx);
     	if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
+    	document.title = title_value = title;
 
     	const block = {
     		c: function create() {
     			section = element("section");
     			if_block.c();
     			t0 = space();
+    			html = element("html");
     			style = element("style");
     			style.textContent = "@import url('https://fonts.googleapis.com/css2?family=Lora:wght@700&display=swap');";
     			set_style(section, "--bgPath", "url(" + gameBackgroundImgPath + ")");
     			set_style(section, "--bgColor", gray);
     			attr_dev(section, "class", "svelte-dyr8qc");
-    			add_location(section, file, 28, 0, 557);
-    			add_location(style, file, 39, 1, 781);
+    			add_location(section, file, 28, 0, 564);
+    			attr_dev(html, "lang", "en");
+    			add_location(html, file, 40, 1, 812);
+    			add_location(style, file, 42, 1, 833);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -3312,6 +3317,7 @@ var app = (function () {
     			insert_dev(target, section, anchor);
     			if_blocks[current_block_type_index].m(section, null);
     			insert_dev(target, t0, anchor);
+    			append_dev(document.head, html);
     			append_dev(document.head, style);
     			current = true;
     		},
@@ -3337,6 +3343,10 @@ var app = (function () {
     				transition_in(if_block, 1);
     				if_block.m(section, null);
     			}
+
+    			if ((!current || dirty & /*title*/ 0) && title_value !== (title_value = title)) {
+    				document.title = title_value;
+    			}
     		},
     		i: function intro(local) {
     			if (current) return;
@@ -3351,6 +3361,7 @@ var app = (function () {
     			if (detaching) detach_dev(section);
     			if_blocks[current_block_type_index].d();
     			if (detaching) detach_dev(t0);
+    			detach_dev(html);
     			detach_dev(style);
     		}
     	};
@@ -3379,6 +3390,7 @@ var app = (function () {
     	});
 
     	$$self.$capture_state = () => ({
+    		title,
     		gameBackgroundImgPath,
     		gray,
     		gameState,

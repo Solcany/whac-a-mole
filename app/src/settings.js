@@ -1,3 +1,5 @@
+export const title = "Gem Player";
+
 // resources
 export const imgPath = "../assets/image/"
 export const audioPath = "../assets/sound/"
@@ -16,17 +18,17 @@ export const audioResetThresh = 0.1
 
 
 // game 
-export const gameTickTime = 1000;
+export const gameTickTime = 1250;
 export const gameTimeUnit = 25;
-export const gameEndTime = 5000;
-export const gameStartDelayTime = 350;
+export const gameEndTime = 20000;
+export const gameStartDelayTime = 300;
 export const gameBackgroundImgPath = imgPath + "background.jpg";
 
 // level
 export const fittingMinDiameter = 50;
-export const fittingPadding = 15;
+export const fittingPadding = 10;
 export const fittingAttempts = 800;
-export const fittingDiameterRange = {low: 200, high: 400}
+export const fittingDiameterRange = {low: 150, high: 300}
 export const levelBounds = {x1: 0.1, y1: 0.2, x2: 0.9, y2: 0.8}
 
 // mole
