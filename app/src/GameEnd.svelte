@@ -92,7 +92,7 @@ span.moleScore img {
 		<H2 text="Your total score is {totalScore}!"/>
 	</div>
 	<nav>
-		<AudioButton clickAction={playAgain} text="Play again" imgSrc="./assets/image/mole_active_4.png" audioSrc="../assets/sound/01.mp3"/>
+		<AudioButton clickAction={playAgain} text="Play again" imgSrc="./build/assets/image/mole_active_4.png" audioSrc="./build/sound/01.mp3"/>
 	</nav>
 	<Footer/>
 </div>

@@ -35,7 +35,7 @@ function startGame() {
 <div transition:fade="{{duration: transitionTime}}" class="main">
 	<H1 text={title}/>
 	<nav>
-		<AudioButton clickAction={startGame} text="Start" imgSrc="./assets/image/mole_active_4.png" audioSrc="../assets/sound/01.mp3"/>
+		<AudioButton clickAction={startGame} text="Start" imgSrc="./build/assets/image/mole_active_4.png" audioSrc="./build/assets/sound/01.mp3"/>
 	</nav>
 	<Footer/>
 </div>

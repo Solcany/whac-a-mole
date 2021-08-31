@@ -16,14 +16,6 @@
 
 </script>
 
-
-<main>
-
-	{#each data as d}
-		<AudioPlayer src={d.track} key={d.key}/>
-	{/each}
-</main>
-
 <style>
 	main {
 		text-align: center;
@@ -45,3 +37,10 @@
 		}
 	}
 </style>
+
+<main>
+
+	{#each data as d}
+		<AudioPlayer src={d.track} key={d.key}/>
+	{/each}
+</main>

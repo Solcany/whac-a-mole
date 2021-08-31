@@ -1,8 +1,8 @@
 export const title = "Gem Player";
 
 // resources
-export const imgPath = "../assets/image/"
-export const audioPath = "../assets/sound/"
+export const imgPath = "./build/assets/image/"
+export const audioPath = "./build/assets/sound/"
 
 // ui
 export const orange = "#D0B17E";
@@ -39,7 +39,7 @@ export const moleTypes = [
 		value: 100,
 		activationChance: 0.03,
 		imgSrc: imgPath + "mole_active_4.png",
-		audioSrc: audioPath + "01.mp3" 
+		audioSrc:  + "01.mp3" 
 	},
 	{
 		value: 40,
