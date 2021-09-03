@@ -10,7 +10,7 @@
 			gameScore, 
 			currentAudioTrack} from './store.js';
 
-	export let x, y, diameter, value, activeImgSrc, activationChance, audioSrc
+	export let x, y, diameter, value, activeImgSrc, activationChance, audioAbsSrc
 
 	let isActive = false
 
@@ -28,7 +28,7 @@
 
 	function setAudioTrack() {
 		let l = Math.random();
-		currentAudioTrack.set({v:  l, src: audioSrc});
+		currentAudioTrack.set({v:  l, src: audioAbsSrc});
 	}
 
 	function handleClick() {

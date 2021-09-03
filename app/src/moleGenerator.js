@@ -74,26 +74,26 @@ function fitCircles(circlesAmount, bounds, diameterRange) {
 	return circles;
 }
 function createMolesFromCircles(circles) {
-	circles.map((circle) => {
-		const diameter = circle.diameter;
-		const moleParams = matchItemWithinRange(diameter,
-										   		fittingMinDiameter,
-										   		fittingDiameterRange.high,
-										   		moleTypes);	
-		let mole = circle;
-			mole.value = moleParams.value;
-			mole.activeImgSrc = moleParams.imgSrc;
-			mole.activationChance = moleParams.activationChance;
-			mole.audioSrc = moleParams.audioSrc;
+	return circles.map((circle) => {
+			const diameter = circle.diameter;
+			const moleParams = matchItemWithinRange(diameter,
+											   		fittingMinDiameter,
+											   		fittingDiameterRange.high,
+											   		moleTypes);	
+			let mole = circle;
+				mole.value = moleParams.value;
+				mole.activeImgSrc = moleParams.imgSrc;
+				mole.activationChance = moleParams.activationChance;
+				mole.audioAbsSrc = moleParams.audioAbsSrc;
 
-		return mole;
+			return mole;
 	})
 }
 export function generateMoles(width, height) {
 	const absBounds = getAbsoluteBounds(levelBounds, width, height);
 	const circles = fitCircles(moleAmount, absBounds, fittingDiameterRange);
 	const moles = createMolesFromCircles(circles);
-	return circles;
+	return moles;
 }
 
 

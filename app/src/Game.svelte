@@ -77,7 +77,7 @@ function resetTime() {
 		<Mole {...mole}/>
 	{/each}
 	{#each moleTypes as moleType}
-		<AudioPlayer src={moleType.audioSrc}/>
+		<AudioPlayer src={moleType.audioAbsSrc}/>
 	{/each}
 	<ProgressBar/>
 	}

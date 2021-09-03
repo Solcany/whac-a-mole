@@ -3,12 +3,15 @@ import { gameState } from './store.js'
 import { title, moleTypes } from './settings.js';
 
 import { fade } from 'svelte/transition';
-import { transitionTime } from './settings.js'
+import { transitionTime, imgAbsPath, audioAbsPath } from './settings.js'
 
 
 import AudioButton from './AudioButton.svelte'	
 import H1 from './H1.svelte'	
-import Footer from './Footer.svelte'	
+import Footer from './Footer.svelte'
+
+let buttonImgSrc = imgAbsPath + "mole_active_4.png";
+let buttonSoundSrc = audioAbsPath + "01.mp3";
 
 
 
@@ -35,7 +38,7 @@ function startGame() {
 <div transition:fade="{{duration: transitionTime}}" class="main">
 	<H1 text={title}/>
 	<nav>
-		<AudioButton clickAction={startGame} text="Start" imgSrc="./build/assets/image/mole_active_4.png" audioSrc="./build/assets/sound/01.mp3"/>
+		<AudioButton clickAction={startGame} text="Start" imgSrc="{buttonImgSrc}" audioSrc="{buttonSoundSrc}"/>
 	</nav>
 	<Footer/>
 </div>

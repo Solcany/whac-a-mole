@@ -1,8 +1,9 @@
 export const title = "Gem Player";
 
 // resources
-export const imgPath = "./build/assets/image/"
-export const audioPath = "./build/assets/sound/"
+export const imgPath = "./assets/image/"
+export const imgAbsPath = "./build/assets/image/"
+export const audioAbsPath = "./build/assets/sound/"
 
 // ui
 export const orange = "#D0B17E";
@@ -12,9 +13,9 @@ export const transitionTime = 500;
 export const fontName = 'Lora';	
 
 // audio
-export const audioPlayerFadeTick = 0.2
+export const audioPlayerFadeTick = 0.1
 export const audioButtonFadeTick = 0.03
-export const audioResetThresh = 0.1
+export const audioResetThresh = 0.07
 
 
 // game 
@@ -39,27 +40,31 @@ export const moleTypes = [
 		value: 100,
 		activationChance: 0.03,
 		imgSrc: imgPath + "mole_active_4.png",
-		audioSrc:  + "01.mp3" 
+		imgAbsSrc: imgAbsPath + "mole_active_4.png",
+		audioAbsSrc:  audioAbsPath + "01.mp3" 
 	},
 	{
 		value: 40,
 		activationChance: 0.23,
 		imgSrc: imgPath + "mole_active_3.png",
-		audioSrc: audioPath + "02.mp3" 
+		imgAbsSrc: imgAbsPath + "mole_active_3.png",		
+		audioAbsSrc: audioAbsPath + "02.mp3" 
 
 	},
 	{
 		value: 20,
 		activationChance: 0.28,
 		imgSrc: imgPath + "mole_active_2.png",
-		audioSrc: audioPath + "03.mp3" 
+		imgAbsSrc: imgAbsPath + "mole_active_2.png",		
+		audioAbsSrc: audioAbsPath + "03.mp3" 
 
 	},
 	{
 		value: 10,
 		activationChance: 0.45,
 		imgSrc: imgPath + "mole_active_1.png",
-		audioSrc: audioPath + "04.mp3" 		
+		imgAbsSrc: imgAbsPath + "mole_active_1.png",		
+		audioAbsSrc: audioAbsPath + "04.mp3" 		
 	}
 ]	
 

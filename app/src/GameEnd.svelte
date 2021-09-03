@@ -1,6 +1,6 @@
 <script>
 import {gameState, gameScore} from "./store.js";
-import {moleTypes, fontName} from "./settings.js";
+import {moleTypes, fontName, imgAbsPath, audioAbsPath} from "./settings.js";
 
 import AudioButton from "./AudioButton.svelte";
 import H1 from "./H1.svelte";
@@ -9,6 +9,10 @@ import Footer from "./Footer.svelte";
 
 const totalScore = getTotalScore()
 const molesScores = getMolesScores();
+
+let buttonImgSrc = imgAbsPath + "mole_active_4.png";
+let buttonSoundSrc = audioAbsPath + "01.mp3";
+
 
 function playAgain() {
 	gameState.set("game");
@@ -78,7 +82,7 @@ span.moleScore img {
 		<div>
 		{#each molesScores as moleScore}
 		<span class="moleScore" style="--fontName: {fontName};">
-			<img src="{moleScore.type.imgSrc}">
+			<img src="{moleScore.type.imgAbsSrc}">
 			<span>
 				{#if moleScore.amount == 1}
 					{moleScore.amount} mole for {moleScore.score} points
@@ -92,7 +96,7 @@ span.moleScore img {
 		<H2 text="Your total score is {totalScore}!"/>
 	</div>
 	<nav>
-		<AudioButton clickAction={playAgain} text="Play again" imgSrc="./build/assets/image/mole_active_4.png" audioSrc="./build/sound/01.mp3"/>
+		<AudioButton clickAction={playAgain} text="Play again" imgSrc={buttonImgSrc} audioSrc={buttonSoundSrc}/>
 	</nav>
 	<Footer/>
 </div>
